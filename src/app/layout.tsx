@@ -14,24 +14,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "TinyAI - 超轻量自研 AI (Rust + 4-bit Quantized)",
+  description: "TinyAI by FishLab-ai — 完全自研的 GPT 推理引擎，Rust 编写，4-bit 量化权重仅 ~25MB，无需 Git LFS",
+  keywords: ["TinyAI", "FishLab-ai", "Rust", "GPT", "4-bit Quantization", "AI", "self-developed"],
+  authors: [{ name: "FishLab-ai" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "TinyAI - 超轻量自研 AI",
+    description: "Rust Engine + 4-bit Quantization, No Git LFS Required",
+    url: "https://github.com/FishLab-ai",
+    siteName: "TinyAI",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "TinyAI - 超轻量自研 AI",
+    description: "Rust Engine + 4-bit Quantization, No Git LFS Required",
   },
 };
 
@@ -41,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh-CN" className="dark" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
