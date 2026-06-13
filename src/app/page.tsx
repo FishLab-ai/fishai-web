@@ -85,14 +85,14 @@ function Landing({ onStart }: { onStart: () => void }) {
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">FishAI</h1>
 
           <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed">
-            FishLab-ai 自研 AI 助手。<br />
-            Rust 推理引擎，4-bit 量化，轻量而聪明。<br />
-            能写代码、写文章、回答问题。
+            FishLab-ai 自研 AI 助手，小体积最聪明。<br />
+            RoPE + SwiGLU + RMSNorm + GQA + 混合精度量化。<br />
+            能写代码、写文章、深度推理、回答问题。
           </p>
 
           <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-300 dark:text-neutral-600">
             <span>Rust</span><span>·</span>
-            <span>4-bit Quantized</span><span>·</span>
+            <span>LLaMA-style v2</span><span>·</span>
             <span>No Git LFS</span>
           </div>
 
@@ -202,9 +202,9 @@ function Chat({ onBack }: { onBack: () => void }) {
   };
 
   const suggestions = [
-    { icon: Code2, label: '写代码', prompt: '用 Rust 实现一个 LRU Cache，支持 get 和 put 操作' },
-    { icon: Pencil, label: '写小作文', prompt: '写一篇关于"人工智能与未来"的短文，300字左右' },
-    { icon: Sparkles, label: '解释概念', prompt: '什么是 Transformer 架构？用简单的语言解释' },
+    { icon: Code2, label: '写代码', prompt: '用 Rust 实现一个 LRU Cache，支持 get 和 put 操作，并解释你的设计选择' },
+    { icon: Pencil, label: '写小作文', prompt: '写一篇关于"小模型大智慧：轻量AI的技术哲学"的深度短文，300字' },
+    { icon: Sparkles, label: '深度推理', prompt: '为什么 RoPE 比 Learned Position Embedding 更好？从数学原理和实验两方面分析' },
   ];
 
   return (
