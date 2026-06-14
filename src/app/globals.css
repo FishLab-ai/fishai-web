@@ -120,3 +120,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── FishAI 打字机 & UI 动效 ── */
+@keyframes cursorPulse {
+  0%   { opacity: 0; transform: scaleY(0.6); }
+  30%  { opacity: 1; transform: scaleY(1); }
+  70%  { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(0.6); }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
