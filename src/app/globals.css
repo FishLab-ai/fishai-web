@@ -125,18 +125,68 @@
 
 /* 光标呼吸 — 缓入缓出，自然感 */
 @keyframes cursorBreathe {
-  0%, 100% { opacity: 0.2; transform: scaleY(0.7); }
-  50%      { opacity: 1;   transform: scaleY(1); }
-}
-
-/* 新字符淡入 — 极轻微，不突兀 */
-@keyframes charFadeIn {
-  from { opacity: 0.3; }
-  to   { opacity: 1; }
+  0%, 100% {
+    opacity: 0.15;
+    transform: scaleY(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.05);
+  }
 }
 
 /* 消息气泡入场 */
 @keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 等待点动画 */
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* prose-fishai 微调 */
+.prose-fishai {
+  line-height: 1.7;
+}
+.prose-fishai p {
+  margin: 0;
+}
+.prose-fishai strong {
+  font-weight: 600;
+}
+
+/* 滚动条美化 */
+main::-webkit-scrollbar {
+  width: 6px;
+}
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+main::-webkit-scrollbar-thumb {
+  background: oklch(0.8 0 0 / 30%);
+  border-radius: 3px;
+}
+main::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.7 0 0 / 40%);
+}
+.dark main::-webkit-scrollbar-thumb {
+  background: oklch(0.4 0 0 / 30%);
+}
+.dark main::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.5 0 0 / 40%);
 }

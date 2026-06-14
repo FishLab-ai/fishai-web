@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Send, Github, ArrowRight, X, Code2, Pencil, Sparkles, Fish,
-  Sun, Moon, ArrowDown,
+  Sun, Moon, ArrowDown, ChevronDown, Zap, Cpu, Binary,
 } from 'lucide-react';
 
 // ────── Types ──────
@@ -16,70 +15,43 @@ interface ChatMsg {
 }
 
 // ────── Markdown 渲染 ──────
-function Md({ text, animate = false, prevLen = 0 }: { text: string; animate?: boolean; prevLen?: number }) {
-  // 将文本分为 "旧段" 和 "新段"
-  // 新段 = 从 prevLen 开始到末尾，用 span 包裹加淡入
-  const renderSegment = (seg: string, startOffset: number) => {
-    if (!animate || startOffset >= prevLen) {
-      // 全部是新的，整体淡入
-      return <span className={animate ? 'animate-[charFadeIn_0.3s_ease-out_both]' : ''}>{seg}</span>;
-    }
-    const cut = prevLen - startOffset;
-    if (cut >= seg.length) {
-      // 全部是旧的
-      return <span>{seg}</span>;
-    }
-    // 部分旧部分新
-    return (
-      <>
-        <span>{seg.slice(0, cut)}</span>
-        <span className="animate-[charFadeIn_0.3s_ease-out_both]">{seg.slice(cut)}</span>
-      </>
-    );
-  };
-
-  let globalOffset = 0;
-
+function Md({ text }: { text: string }) {
   const blocks = text.split(/(```[\s\S]*?```)/g);
   return (
     <>
       {blocks.map((block, i) => {
-        const blockStart = globalOffset;
-        globalOffset += block.length;
-
         if (block.startsWith('```') && block.endsWith('```')) {
           const lines = block.slice(3, -3).split('\n');
           const lang = /^[a-z]/i.test(lines[0]) ? lines[0] : '';
           const code = lines.slice(lang ? 1 : 0).join('\n');
           return (
-            <div key={i} className="my-2.5 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700/60">
+            <div key={i} className="my-2.5 rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-700/50 bg-neutral-50/50 dark:bg-neutral-800/30">
               {lang && (
-                <div className="bg-neutral-50 dark:bg-neutral-800/80 px-3 py-1 text-[11px] font-mono text-neutral-400 dark:text-neutral-500 flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-700/60">
+                <div className="px-3.5 py-1.5 text-[11px] font-mono text-neutral-400 dark:text-neutral-500 flex items-center gap-1.5 border-b border-neutral-200/60 dark:border-neutral-700/40 bg-neutral-100/50 dark:bg-neutral-800/50">
                   <Code2 className="w-3 h-3" />{lang}
                 </div>
               )}
-              <pre className="bg-white dark:bg-neutral-900/60 p-3 overflow-x-auto text-[13px] leading-relaxed font-mono text-neutral-700 dark:text-neutral-300">
+              <pre className="p-3.5 overflow-x-auto text-[13px] leading-relaxed font-mono text-neutral-700 dark:text-neutral-300">
                 <code>{code}</code>
               </pre>
             </div>
           );
         }
 
+        // Inline processing
         const segs = block.split(/(`[^`\n]+`)/g);
         return (
           <span key={i}>
             {segs.map((s, j) => {
-              const segStart = blockStart + block.indexOf(s);
               if (s.startsWith('`') && s.endsWith('`')) {
                 const inner = s.slice(1, -1);
-                return <code key={j} className="bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 px-1 py-0.5 rounded text-[13px] font-mono">{inner}</code>;
+                return <code key={j} className="bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-md text-[13px] font-mono">{inner}</code>;
               }
               const bs = s.split(/(\*\*[^*]+\*\*)/g);
               return bs.map((b, k) => {
-                const partStart = segStart + s.indexOf(b);
                 if (b.startsWith('**') && b.endsWith('**'))
-                  return <strong key={`${j}-${k}`} className="font-semibold">{renderSegment(b.slice(2, -2), partStart)}</strong>;
-                return <span key={`${j}-${k}`}>{renderSegment(b, partStart)}</span>;
+                  return <strong key={`${j}-${k}`} className="font-semibold text-neutral-900 dark:text-neutral-50">{b.slice(2, -2)}</strong>;
+                return <span key={`${j}-${k}`}>{b}</span>;
               });
             })}
           </span>
@@ -117,61 +89,133 @@ function useTheme() {
   return [dark, setDark] as const;
 }
 
+// ────── 主题切换按钮 ──────
+function ThemeToggle({ dark, setDark, size = 'sm' }: { dark: boolean; setDark: (d: boolean) => void; size?: 'sm' | 'md' }) {
+  const sz = size === 'md';
+  return (
+    <button
+      onClick={() => setDark(!dark)}
+      className={`
+        relative rounded-full flex items-center transition-all duration-300
+        ${sz ? 'w-16 h-8 p-0.5' : 'w-14 h-7 p-0.5'}
+        ${dark
+          ? 'bg-neutral-700 hover:bg-neutral-600'
+          : 'bg-blue-100 hover:bg-blue-200'
+        }
+      `}
+      aria-label={dark ? '切换到亮色模式' : '切换到暗色模式'}
+    >
+      <span className={`
+        flex items-center justify-center rounded-full bg-white shadow-sm
+        transition-all duration-300 ease-in-out
+        ${sz ? 'w-7 h-7' : 'w-6 h-6'}
+        ${dark ? 'translate-x-8' : 'translate-x-0'}
+      `}>
+        {dark
+          ? <Moon className="w-3.5 h-3.5 text-blue-400" />
+          : <Sun className="w-3.5 h-3.5 text-amber-500" />
+        }
+      </span>
+      {/* Background icons */}
+      <Sun className={`absolute left-1.5 w-3 h-3 text-amber-400 transition-opacity duration-300 ${dark ? 'opacity-40' : 'opacity-0'}`} />
+      <Moon className={`absolute right-1.5 w-3 h-3 text-blue-300 transition-opacity duration-300 ${dark ? 'opacity-0' : 'opacity-40'}`} />
+    </button>
+  );
+}
+
 // ────── 介绍页 ──────
 function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolean; setDark: (d: boolean) => void }) {
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-neutral-950 transition-colors duration-300">
-      <header className="h-14 flex items-center justify-between px-6 border-b border-neutral-100 dark:border-neutral-800/60">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-blue-50/30 dark:from-neutral-950 dark:to-neutral-900/50 transition-colors duration-500">
+      {/* Header */}
+      <header className="h-14 flex items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <Fish className="w-5 h-5 text-blue-500" />
-          <span className="font-semibold text-[15px] tracking-tight text-neutral-900 dark:text-neutral-100">FishAI</span>
+          <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Fish className="w-4 h-4 text-white" />
+          </div>
+          <span className="font-bold text-[15px] tracking-tight text-neutral-900 dark:text-neutral-100">FishAI</span>
+          <span className="text-[10px] font-medium text-blue-500 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-400 px-1.5 py-0.5 rounded-full">v2</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setDark(!dark)}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        <div className="flex items-center gap-2">
+          <ThemeToggle dark={dark} setDark={setDark} />
+          <a
+            href="https://github.com/FishLab-ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-8 px-3 rounded-lg flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
           >
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <a href="https://github.com/FishLab-ai" target="_blank" rel="noopener noreferrer">
-            <button className="h-8 px-2.5 rounded-lg flex items-center justify-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-              <Github className="w-4 h-4" /> GitHub
-            </button>
+            <Github className="w-4 h-4" />
+            <span className="hidden sm:inline">GitHub</span>
           </a>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="max-w-sm text-center space-y-6">
-          <div className="w-16 h-16 rounded-2xl bg-blue-500 flex items-center justify-center mx-auto shadow-lg shadow-blue-500/25">
-            <Fish className="w-8 h-8 text-white" />
+      {/* Main */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
+        <div className="max-w-md text-center space-y-7">
+          {/* Logo */}
+          <div className="relative inline-block">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/25 mx-auto">
+              <Fish className="w-10 h-10 text-white" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
           </div>
 
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">FishAI</h1>
-
-          <p className="text-neutral-500 dark:text-neutral-400 text-sm leading-relaxed">
-            FishLab-ai 自研 AI 助手，小体积最聪明。<br />
-            RoPE + SwiGLU + RMSNorm + GQA + 混合精度量化。<br />
-            能写代码、写文章、深度推理、回答问题。
-          </p>
-
-          <div className="flex items-center justify-center gap-2 text-[11px] text-neutral-300 dark:text-neutral-600">
-            <span>Rust</span><span>·</span>
-            <span>LLaMA-style v2</span><span>·</span>
-            <span>No Git LFS</span>
+          {/* Title */}
+          <div className="space-y-2">
+            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-100">
+              FishAI
+            </h1>
+            <p className="text-base text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              FishLab-ai 自研 AI 助手，小体积最聪明
+            </p>
           </div>
 
+          {/* Tech tags */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {[
+              { icon: Cpu, label: 'Rust Engine' },
+              { icon: Binary, label: '4-bit 量化' },
+              { icon: Zap, label: '~12MB' },
+            ].map((t, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/80 dark:bg-neutral-800/80 border border-neutral-200/80 dark:border-neutral-700/50 text-[11px] font-medium text-neutral-500 dark:text-neutral-400 shadow-sm">
+                <t.icon className="w-3 h-3" />
+                {t.label}
+              </span>
+            ))}
+          </div>
+
+          {/* Architecture */}
+          <div className="bg-white/60 dark:bg-neutral-800/40 rounded-2xl border border-neutral-200/60 dark:border-neutral-700/40 p-4 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-2.5">架构特性</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-neutral-600 dark:text-neutral-400">
+              {['RoPE 旋转位置编码', 'SwiGLU 激活函数', 'RMSNorm 归一化', 'GQA 分组查询注意力', '权重绑定 WeightTying', '混合精度量化'].map((f, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0" />
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
           <button
             onClick={onStart}
-            className="inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-6 h-11 text-sm font-medium shadow-lg shadow-blue-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
+            className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl px-7 h-12 text-sm font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
           >
-            开始聊天 <ArrowRight className="w-4 h-4" />
+            开始聊天
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </button>
         </div>
       </main>
 
-      <footer className="h-12 flex items-center justify-center text-[11px] text-neutral-300 dark:text-neutral-700">
-        FishLab-ai
+      {/* Footer */}
+      <footer className="h-12 flex items-center justify-center text-[11px] text-neutral-300 dark:text-neutral-700 gap-1.5">
+        <span>FishLab-ai</span>
+        <span>·</span>
+        <span>Built with Rust</span>
       </footer>
     </div>
   );
@@ -187,29 +231,28 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // 追踪上次渲染长度，用于增量动画
-  const prevLenRef = useRef<Record<string, number>>({});
-
-  // 滚动控制
+  // ── 滚动控制 ──
   const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const userScrolledUp = useRef(false);
+  const isNearBottomRef = useRef(true);
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    const isNearBottom = distanceFromBottom < 80;
-    userScrolledUp.current = !isNearBottom;
-    setShowScrollBtn(!isNearBottom);
+    const near = distanceFromBottom < 100;
+    isNearBottomRef.current = near;
+    setShowScrollBtn(!near);
   }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
-    chatEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' });
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' });
+    }
   }, []);
 
-  // 新消息时：如果用户在底部就跟随，否则不强制
+  // 流式消息时：只在用户在底部才跟随
   useEffect(() => {
-    if (!userScrolledUp.current) {
+    if (isNearBottomRef.current) {
       scrollToBottom();
     }
   }, [messages, scrollToBottom]);
@@ -217,10 +260,13 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
   // textarea 自适应
   useEffect(() => {
     const el = textareaRef.current;
-    if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 160) + 'px'; }
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    }
   }, [input]);
 
-  // 流式发送
+  // ── 流式发送 ──
   const send = useCallback(async (text: string) => {
     const content = text.trim();
     if (!content || streaming) return;
@@ -228,11 +274,10 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
     const userMsg: ChatMsg = { id: `u_${Date.now()}`, role: 'user', content };
     const aid = `a_${Date.now()}`;
     setMessages(prev => [...prev, userMsg, { id: aid, role: 'assistant', content: '' }]);
-    prevLenRef.current[aid] = 0;
     setInput('');
     setStreaming(true);
     // 发送后自动滚到底部
-    userScrolledUp.current = false;
+    isNearBottomRef.current = true;
     setTimeout(() => scrollToBottom(), 50);
 
     try {
@@ -250,6 +295,30 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
       let buf = '';
       let full = '';
 
+      // 轻缓冲：收集 token 后合并渲染，避免每个字符单独 setState
+      let pendingTokens = '';
+      let flushTimer: ReturnType<typeof requestAnimationFrame> | null = null;
+
+      const flush = () => {
+        if (!pendingTokens) { flushTimer = null; return; }
+        full += pendingTokens;
+        pendingTokens = '';
+        const current = full;
+        setMessages(prev => {
+          const idx = prev.findIndex(m => m.id === aid);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...prev[idx], content: current };
+          return updated;
+        });
+        flushTimer = null;
+      };
+
+      const scheduleFlush = () => {
+        if (flushTimer !== null) return;
+        flushTimer = requestAnimationFrame(flush);
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -265,19 +334,25 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
           try {
             const obj = JSON.parse(data);
             if (obj.content) {
-              full += obj.content;
-              const current = full;
-              // SSE 到了就显示，不限速
-              setMessages(prev => {
-                const idx = prev.findIndex(m => m.id === aid);
-                if (idx === -1) return prev;
-                const updated = [...prev];
-                updated[idx] = { ...prev[idx], content: current };
-                return updated;
-              });
+              pendingTokens += obj.content;
+              scheduleFlush();
             }
           } catch {}
         }
+      }
+
+      // 确保所有剩余 token 都刷完
+      if (pendingTokens) {
+        full += pendingTokens;
+        pendingTokens = '';
+        const current = full;
+        setMessages(prev => {
+          const idx = prev.findIndex(m => m.id === aid);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...prev[idx], content: current };
+          return updated;
+        });
       }
     } catch {
       setMessages(prev => prev.map(m =>
@@ -285,7 +360,6 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
       ));
     } finally {
       setStreaming(false);
-      delete prevLenRef.current[aid];
     }
   }, [streaming, scrollToBottom]);
 
@@ -294,15 +368,15 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
   };
 
   const suggestions = [
-    { icon: Code2, label: '写代码', prompt: '用 Rust 实现一个 LRU Cache，支持 get 和 put 操作，并解释你的设计选择' },
-    { icon: Pencil, label: '写小作文', prompt: '写一篇关于"小模型大智慧：轻量AI的技术哲学"的深度短文，300字' },
-    { icon: Sparkles, label: '深度推理', prompt: '为什么 RoPE 比 Learned Position Embedding 更好？从数学原理和实验两方面分析' },
+    { icon: Code2, label: '写代码', desc: 'Rust / Python / TS', prompt: '用 Rust 实现一个 LRU Cache，支持 get 和 put 操作，并解释你的设计选择' },
+    { icon: Pencil, label: '写小作文', desc: '深度短文', prompt: '写一篇关于"小模型大智慧：轻量AI的技术哲学"的深度短文，300字' },
+    { icon: Sparkles, label: '深度推理', desc: '数学 & 逻辑', prompt: '为什么 RoPE 比 Learned Position Embedding 更好？从数学原理和实验两方面分析' },
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-neutral-950 transition-colors duration-300">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-white to-blue-50/20 dark:from-neutral-950 dark:to-neutral-900/30 transition-colors duration-500">
       {/* 顶栏 */}
-      <header className="h-12 flex items-center justify-between px-4 border-b border-neutral-100 dark:border-neutral-800/60 shrink-0 bg-white dark:bg-neutral-950 z-10">
+      <header className="h-12 flex items-center justify-between px-4 border-b border-neutral-200/60 dark:border-neutral-800/40 shrink-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl z-10">
         <div className="flex items-center gap-2">
           <button
             onClick={onBack}
@@ -310,20 +384,22 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
           >
             <X className="w-4 h-4" />
           </button>
-          <Fish className="w-4 h-4 text-blue-500" />
-          <span className="font-medium text-sm text-neutral-700 dark:text-neutral-300">FishAI</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm shadow-blue-500/20">
+              <Fish className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-semibold text-sm text-neutral-800 dark:text-neutral-200">FishAI</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setDark(!dark)}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+        <div className="flex items-center gap-2">
+          <ThemeToggle dark={dark} setDark={setDark} />
+          <a
+            href="https://github.com/FishLab-ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
           >
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <a href="https://github.com/FishLab-ai" target="_blank" rel="noopener noreferrer">
-            <button className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
-              <Github className="w-4 h-4" />
-            </button>
+            <Github className="w-4 h-4" />
           </a>
         </div>
       </header>
@@ -336,55 +412,66 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
       >
         <div className="max-w-2xl mx-auto px-4 py-6">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-5">
-              <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <Fish className="w-6 h-6 text-white" />
+            <div className="flex flex-col items-center justify-center min-h-[55vh] gap-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/20">
+                <Fish className="w-7 h-7 text-white" />
               </div>
-              <p className="text-sm text-neutral-400 dark:text-neutral-500">有什么可以帮你的？</p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="text-center space-y-1.5">
+                <p className="text-base font-medium text-neutral-700 dark:text-neutral-300">有什么可以帮你的？</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-500">试试下面的快捷指令</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full max-w-md">
                 {suggestions.map((s, i) => (
                   <button
                     key={i}
                     onClick={() => send(s.prompt)}
-                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 text-xs text-neutral-500 dark:text-neutral-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200 hover:shadow-sm"
+                    className="flex-1 flex items-start gap-2.5 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-800/60 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 text-left transition-all duration-200 hover:shadow-sm group"
                   >
-                    <s.icon className="w-3.5 h-3.5" />
-                    {s.label}
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors">
+                      <s.icon className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300">{s.label}</div>
+                      <div className="text-[11px] text-neutral-400 dark:text-neutral-500">{s.desc}</div>
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {messages.map(msg => {
                 const isStreaming = streaming && msg.role === 'assistant' && msg.id === messages[messages.length - 1]?.id;
-                const prevLen = prevLenRef.current[msg.id] ?? 0;
-                // 更新 prevLen 为当前长度 (下次渲染用)
-                if (msg.role === 'assistant') {
-                  prevLenRef.current[msg.id] = msg.content.length;
-                }
 
                 return (
-                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeSlideIn_0.3s_ease-out]`}>
+                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeSlideIn_0.25s_ease-out]`}>
                     {msg.role === 'assistant' && (
-                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center mr-2.5 mt-0.5 shrink-0">
-                        <Fish className="w-3.5 h-3.5 text-blue-500" />
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mr-2.5 mt-0.5 shrink-0 shadow-sm shadow-blue-500/20">
+                        <Fish className="w-3.5 h-3.5 text-white" />
                       </div>
                     )}
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[80%] rounded-2xl text-sm leading-relaxed ${
                         msg.role === 'user'
-                          ? 'bg-blue-500 text-white shadow-md shadow-blue-500/15'
-                          : 'bg-neutral-50 dark:bg-neutral-900/80 text-neutral-800 dark:text-neutral-200 border border-neutral-100 dark:border-neutral-800/60'
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2.5 shadow-md shadow-blue-500/15'
+                          : 'bg-white dark:bg-neutral-900/70 text-neutral-800 dark:text-neutral-200 border border-neutral-200/80 dark:border-neutral-800/50 px-4 py-3 shadow-sm'
                       }`}
                     >
                       {msg.role === 'assistant' ? (
                         <>
                           {msg.content ? (
-                            <Md text={msg.content} animate={isStreaming} prevLen={prevLen} />
-                          ) : null}
-                          {isStreaming && (
-                            <span className="inline-block w-[2px] h-[14px] bg-blue-500 ml-0.5 align-middle rounded-full animate-[cursorBreathe_1.2s_ease-in-out_infinite]" />
+                            <div className="prose-fishai">
+                              <Md text={msg.content} />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 py-1">
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-[dotBounce_1.4s_ease-in-out_infinite]" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-[dotBounce_1.4s_ease-in-out_0.2s_infinite]" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-[dotBounce_1.4s_ease-in-out_0.4s_infinite]" />
+                            </div>
+                          )}
+                          {isStreaming && msg.content && (
+                            <span className="inline-block w-[2px] h-[15px] bg-blue-500 ml-0.5 align-middle rounded-full animate-[cursorBreathe_1.2s_ease-in-out_infinite]" />
                           )}
                         </>
                       ) : (
@@ -401,42 +488,47 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
       </main>
 
       {/* 回到底部按钮 */}
-      {showScrollBtn && (
-        <div className="relative">
+      <div className={`relative transition-all duration-300 ${showScrollBtn ? 'h-10' : 'h-0'}`}>
+        {showScrollBtn && (
           <button
             onClick={() => {
-              userScrolledUp.current = false;
+              isNearBottomRef.current = true;
               scrollToBottom();
               setShowScrollBtn(false);
             }}
-            className="absolute -top-12 left-1/2 -translate-x-1/2 h-8 px-3 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200 hover:shadow-xl z-10"
+            className="absolute -top-5 left-1/2 -translate-x-1/2 h-9 px-3.5 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-lg flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-200 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 z-10"
           >
-            <ArrowDown className="w-3 h-3" />
+            <ChevronDown className="w-3.5 h-3.5" />
             回到底部
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 输入区 */}
-      <footer className="border-t border-neutral-100 dark:border-neutral-800/60 p-3 shrink-0 bg-white dark:bg-neutral-950">
-        <div className="max-w-2xl mx-auto flex gap-2 items-end">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={onKey}
-            placeholder="输入消息…"
-            className="min-h-[42px] max-h-[160px] resize-none text-sm bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500/30 focus-visible:border-blue-400 rounded-xl transition-all duration-200"
-            rows={1}
-            disabled={streaming}
-          />
+      <footer className="border-t border-neutral-200/60 dark:border-neutral-800/40 p-3 sm:p-4 shrink-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl">
+        <div className="max-w-2xl mx-auto flex gap-2.5 items-end">
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={onKey}
+              placeholder="输入消息…"
+              className="min-h-[44px] max-h-[160px] resize-none text-sm bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 focus-visible:ring-blue-500/30 focus-visible:border-blue-400 rounded-xl transition-all duration-200 placeholder:text-neutral-400 dark:placeholder:text-neutral-600"
+              rows={1}
+              disabled={streaming}
+            />
+          </div>
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || streaming}
-            className="h-[42px] w-[42px] rounded-xl bg-blue-500 hover:bg-blue-600 text-white shrink-0 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/25 active:scale-95"
+            className="h-[44px] w-[44px] rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shrink-0 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/25 active:scale-95"
           >
             <Send className="w-4 h-4" />
           </button>
+        </div>
+        <div className="max-w-2xl mx-auto mt-1.5 text-center">
+          <span className="text-[10px] text-neutral-300 dark:text-neutral-700">FishAI · 基于 Rust 推理引擎 · 混合精度量化</span>
         </div>
       </footer>
     </div>
