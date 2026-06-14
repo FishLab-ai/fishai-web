@@ -11,7 +11,8 @@ import {
 interface ChatMsg {
   id: string;
   role: 'user' | 'assistant';
-  content: string;
+  content: string;       // 已显示的内容
+  buffered?: string;     // 等待逐字输出的缓冲区
 }
 
 // ────── Markdown 渲染 ──────
@@ -38,7 +39,6 @@ function Md({ text }: { text: string }) {
           );
         }
 
-        // Inline processing
         const segs = block.split(/(`[^`\n]+`)/g);
         return (
           <span key={i}>
@@ -116,7 +116,6 @@ function ThemeToggle({ dark, setDark, size = 'sm' }: { dark: boolean; setDark: (
           : <Sun className="w-3.5 h-3.5 text-amber-500" />
         }
       </span>
-      {/* Background icons */}
       <Sun className={`absolute left-1.5 w-3 h-3 text-amber-400 transition-opacity duration-300 ${dark ? 'opacity-40' : 'opacity-0'}`} />
       <Moon className={`absolute right-1.5 w-3 h-3 text-blue-300 transition-opacity duration-300 ${dark ? 'opacity-0' : 'opacity-40'}`} />
     </button>
@@ -127,7 +126,6 @@ function ThemeToggle({ dark, setDark, size = 'sm' }: { dark: boolean; setDark: (
 function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolean; setDark: (d: boolean) => void }) {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-white to-blue-50/30 dark:from-neutral-950 dark:to-neutral-900/50 transition-colors duration-500">
-      {/* Header */}
       <header className="h-14 flex items-center justify-between px-5 sm:px-8">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -150,10 +148,8 @@ function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolea
         </div>
       </header>
 
-      {/* Main */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
         <div className="max-w-md text-center space-y-7">
-          {/* Logo */}
           <div className="relative inline-block">
             <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/25 mx-auto">
               <Fish className="w-10 h-10 text-white" />
@@ -163,17 +159,11 @@ function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolea
             </div>
           </div>
 
-          {/* Title */}
           <div className="space-y-2">
-            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-100">
-              FishAI
-            </h1>
-            <p className="text-base text-neutral-500 dark:text-neutral-400 leading-relaxed">
-              FishLab-ai 自研 AI 助手，小体积最聪明
-            </p>
+            <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-100">FishAI</h1>
+            <p className="text-base text-neutral-500 dark:text-neutral-400 leading-relaxed">FishLab-ai 自研 AI 助手，小体积最聪明</p>
           </div>
 
-          {/* Tech tags */}
           <div className="flex flex-wrap items-center justify-center gap-2">
             {[
               { icon: Cpu, label: 'Rust Engine' },
@@ -187,7 +177,6 @@ function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolea
             ))}
           </div>
 
-          {/* Architecture */}
           <div className="bg-white/60 dark:bg-neutral-800/40 rounded-2xl border border-neutral-200/60 dark:border-neutral-700/40 p-4 text-left">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500 mb-2.5">架构特性</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-neutral-600 dark:text-neutral-400">
@@ -200,7 +189,6 @@ function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolea
             </div>
           </div>
 
-          {/* CTA */}
           <button
             onClick={onStart}
             className="group inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl px-7 h-12 text-sm font-semibold shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-lg"
@@ -211,11 +199,8 @@ function Landing({ onStart, dark, setDark }: { onStart: () => void; dark: boolea
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="h-12 flex items-center justify-center text-[11px] text-neutral-300 dark:text-neutral-700 gap-1.5">
-        <span>FishLab-ai</span>
-        <span>·</span>
-        <span>Built with Rust</span>
+        <span>FishLab-ai</span><span>·</span><span>Built with Rust</span>
       </footer>
     </div>
   );
@@ -230,6 +215,13 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // ── 打字机缓冲 ──
+  // 用 ref 存缓冲区，避免闭包陷阱
+  const bufferRef = useRef('');           // 等待逐字输出的字符队列
+  const displayedRef = useRef('');        // 已经显示的完整文本
+  const streamingIdRef = useRef<string | null>(null);  // 当前流式消息的 id
+  const rafRef = useRef<number | null>(null);          // RAF id
 
   // ── 滚动控制 ──
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -266,6 +258,80 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
     }
   }, [input]);
 
+  // ── 打字机核心：RAF 循环从缓冲区逐字释放 ──
+  const startTypewriter = useCallback((aid: string) => {
+    streamingIdRef.current = aid;
+    bufferRef.current = '';
+    displayedRef.current = '';
+
+    let lastTime = performance.now();
+
+    const tick = (now: number) => {
+      const dt = now - lastTime;
+      lastTime = now;
+      const buf = bufferRef.current;
+
+      if (buf.length > 0) {
+        // ── 自适应速度 ──
+        // 基础速度: ~50 字符/秒 (约 1 字符/帧@60fps)
+        // 缓冲积压时自动加速：积压越多越快，保证不会严重堆积
+        const BASE_CPS = 50;                        // 基础每秒字符数
+        const bufferPressure = buf.length;           // 积压量
+        const speedMultiplier = bufferPressure > 8
+          ? 1 + (bufferPressure - 8) * 0.3          // 积压>8字就加速
+          : 1;
+        const charsThisFrame = Math.max(1, Math.round(BASE_CPS * speedMultiplier * dt / 1000));
+
+        const toShow = buf.slice(0, charsThisFrame);
+        bufferRef.current = buf.slice(charsThisFrame);
+        displayedRef.current += toShow;
+
+        const current = displayedRef.current;
+        const id = streamingIdRef.current;
+        if (id) {
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.id === id);
+            if (idx === -1) return prev;
+            const updated = [...prev];
+            updated[idx] = { ...prev[idx], content: current, buffered: bufferRef.current };
+            return updated;
+          });
+        }
+      }
+
+      // 继续循环（streaming 期间持续运行）
+      if (streamingIdRef.current === aid) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  const stopTypewriter = useCallback(() => {
+    // 流结束时，把缓冲区剩余全部刷出
+    if (bufferRef.current.length > 0) {
+      displayedRef.current += bufferRef.current;
+      bufferRef.current = '';
+      const current = displayedRef.current;
+      const id = streamingIdRef.current;
+      if (id) {
+        setMessages(prev => {
+          const idx = prev.findIndex(m => m.id === id);
+          if (idx === -1) return prev;
+          const updated = [...prev];
+          updated[idx] = { ...prev[idx], content: current, buffered: '' };
+          return updated;
+        });
+      }
+    }
+    streamingIdRef.current = null;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
   // ── 流式发送 ──
   const send = useCallback(async (text: string) => {
     const content = text.trim();
@@ -273,12 +339,14 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
 
     const userMsg: ChatMsg = { id: `u_${Date.now()}`, role: 'user', content };
     const aid = `a_${Date.now()}`;
-    setMessages(prev => [...prev, userMsg, { id: aid, role: 'assistant', content: '' }]);
+    setMessages(prev => [...prev, userMsg, { id: aid, role: 'assistant', content: '', buffered: '' }]);
     setInput('');
     setStreaming(true);
-    // 发送后自动滚到底部
     isNearBottomRef.current = true;
     setTimeout(() => scrollToBottom(), 50);
+
+    // 启动打字机
+    startTypewriter(aid);
 
     try {
       const res = await fetch('/api/chat', {
@@ -293,31 +361,6 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
 
       const dec = new TextDecoder();
       let buf = '';
-      let full = '';
-
-      // 轻缓冲：收集 token 后合并渲染，避免每个字符单独 setState
-      let pendingTokens = '';
-      let flushTimer: ReturnType<typeof requestAnimationFrame> | null = null;
-
-      const flush = () => {
-        if (!pendingTokens) { flushTimer = null; return; }
-        full += pendingTokens;
-        pendingTokens = '';
-        const current = full;
-        setMessages(prev => {
-          const idx = prev.findIndex(m => m.id === aid);
-          if (idx === -1) return prev;
-          const updated = [...prev];
-          updated[idx] = { ...prev[idx], content: current };
-          return updated;
-        });
-        flushTimer = null;
-      };
-
-      const scheduleFlush = () => {
-        if (flushTimer !== null) return;
-        flushTimer = requestAnimationFrame(flush);
-      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -334,34 +377,33 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
           try {
             const obj = JSON.parse(data);
             if (obj.content) {
-              pendingTokens += obj.content;
-              scheduleFlush();
+              // SSE token 到达 → 推入缓冲区，打字机 RAF 循环会逐字取出
+              bufferRef.current += obj.content;
             }
           } catch {}
         }
       }
-
-      // 确保所有剩余 token 都刷完
-      if (pendingTokens) {
-        full += pendingTokens;
-        pendingTokens = '';
-        const current = full;
-        setMessages(prev => {
-          const idx = prev.findIndex(m => m.id === aid);
-          if (idx === -1) return prev;
-          const updated = [...prev];
-          updated[idx] = { ...prev[idx], content: current };
-          return updated;
-        });
-      }
     } catch {
-      setMessages(prev => prev.map(m =>
-        m.id === aid ? { ...m, content: '出了点问题，请重试。' } : m
-      ));
+      // 出错时也要把已缓冲的内容显示出来
+      if (bufferRef.current.length === 0 && displayedRef.current.length === 0) {
+        setMessages(prev => prev.map(m =>
+          m.id === aid ? { ...m, content: '出了点问题，请重试。', buffered: '' } : m
+        ));
+      }
     } finally {
+      stopTypewriter();
       setStreaming(false);
     }
-  }, [streaming, scrollToBottom]);
+  }, [streaming, scrollToBottom, startTypewriter, stopTypewriter]);
+
+  // 组件卸载时清理 RAF
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
 
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -441,7 +483,7 @@ function Chat({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; se
           ) : (
             <div className="space-y-4">
               {messages.map(msg => {
-                const isStreaming = streaming && msg.role === 'assistant' && msg.id === messages[messages.length - 1]?.id;
+                const isStreaming = streaming && msg.role === 'assistant' && msg.id === streamingIdRef.current;
 
                 return (
                   <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-[fadeSlideIn_0.25s_ease-out]`}>
