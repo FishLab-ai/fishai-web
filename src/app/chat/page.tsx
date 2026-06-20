@@ -255,6 +255,13 @@ export default function ChatPage() {
           throw new Error(errData.error || '请求失败');
         }
 
+        // 验证是否为 SSE 流
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('text/event-stream')) {
+          const errText = await res.text().catch(() => '');
+          throw new Error(errText || '服务器响应异常');
+        }
+
         const reader = res.body?.getReader();
         if (!reader) throw new Error('无响应流');
 
