@@ -332,7 +332,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-background">
       <header className="shrink-0 flex items-center h-11 px-3 z-10">
         <button
           onClick={() => setSidebarOpen(true)}
