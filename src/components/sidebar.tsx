@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
+import { useI18n, type Translations } from '@/lib/i18n';
 
 function ConversationList({
   user,
@@ -33,6 +34,7 @@ function ConversationList({
   currentConversationId,
   onSelectConversation,
   onDeleteConversation,
+  t,
 }: {
   user: UserInfo | null;
   loading: boolean;
@@ -40,11 +42,12 @@ function ConversationList({
   currentConversationId: string | null;
   onSelectConversation: (convId: string) => void;
   onDeleteConversation: (e: React.MouseEvent, convId: string) => void;
+  t: Translations;
 }) {
   if (!user) {
     return (
       <div className="px-3 py-10 text-center">
-        <p className="text-xs text-neutral-400 dark:text-neutral-600">登录后查看聊天记录</p>
+        <p className="text-xs text-neutral-400 dark:text-neutral-600">{t.chat.loginToView}</p>
       </div>
     );
   }
@@ -52,7 +55,7 @@ function ConversationList({
   if (loading && conversations.length === 0) {
     return (
       <div className="px-3 py-10 text-center">
-        <p className="text-xs text-neutral-400">加载中...</p>
+        <p className="text-xs text-neutral-400">{t.common.loading}</p>
       </div>
     );
   }
@@ -60,7 +63,7 @@ function ConversationList({
   if (conversations.length === 0) {
     return (
       <div className="px-3 py-10 text-center">
-        <p className="text-xs text-neutral-400 dark:text-neutral-600">暂无对话</p>
+        <p className="text-xs text-neutral-400 dark:text-neutral-600">{t.chat.noConversations}</p>
       </div>
     );
   }
@@ -107,6 +110,7 @@ export function Sidebar() {
     setSettingsOpen,
     setAuthOpen,
   } = useAppStore();
+  const { t } = useI18n();
 
   const [loading, setLoading] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -184,7 +188,7 @@ export function Sidebar() {
         fetchConversations();
       }
     } catch {
-      toast({ title: '删除失败', variant: 'destructive' });
+      toast({ title: t.chat.deleteFailed, variant: 'destructive' });
     }
   };
 
@@ -204,7 +208,7 @@ export function Sidebar() {
         }`}
       >
         <div className="h-14 flex items-center justify-between px-4 border-b border-neutral-200/60 dark:border-neutral-800/40 shrink-0">
-          <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">聊天记录</span>
+          <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{t.chat.chatHistory}</span>
           <button
             onClick={handleClose}
             className="h-7 w-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
@@ -222,6 +226,7 @@ export function Sidebar() {
               currentConversationId={currentConversationId}
               onSelectConversation={handleSelectConversation}
               onDeleteConversation={handleDeleteConversation}
+              t={t}
             />
           </div>
         </ScrollArea>
@@ -233,7 +238,7 @@ export function Sidebar() {
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2.5 flex-1 min-w-0 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-700/50 px-1 py-0.5 transition-colors">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {(user.name || user.email)[0].toUpperCase()}
+                      {(user.name || user.email)?.[0]?.toUpperCase()}
                     </div>
                     <span className="text-xs text-neutral-700 dark:text-neutral-300 truncate">{user.name || user.email}</span>
                   </button>
@@ -241,24 +246,24 @@ export function Sidebar() {
                 <button
                   onClick={() => { setSettingsOpen(true); handleClose(); }}
                   className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition-colors shrink-0"
-                  title="设置"
+                  title={t.common.settings}
                 >
                   <Settings className="w-4 h-4" />
                 </button>
               </div>
               <DropdownMenuContent align="start" side="top" className="w-48 mb-1">
                 <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{user.name || '用户'}</p>
+                  <p className="text-sm font-medium">{user.name || t.common.user}</p>
                   <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => { setAuthOpen(true); }} className="cursor-pointer">
                   <ArrowLeftRight className="w-4 h-4 mr-2" />
-                  换个账号
+                  {t.home.switchAccount}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" />
-                  退出登录
+                  {t.home.logout}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -271,12 +276,12 @@ export function Sidebar() {
                 <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-neutral-500 dark:text-neutral-400 shrink-0">
                   <User className="w-4 h-4" />
                 </div>
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">登录</span>
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">{t.common.login}</span>
               </button>
               <button
                 onClick={() => { setSettingsOpen(true); handleClose(); }}
                 className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-200/60 dark:hover:bg-neutral-700/60 transition-colors shrink-0"
-                title="设置"
+                title={t.common.settings}
               >
                 <Settings className="w-4 h-4" />
               </button>
@@ -287,14 +292,14 @@ export function Sidebar() {
             <button
               onClick={() => { router.push('/'); handleClose(); }}
               className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              title="首页"
+              title={t.common.home}
             >
               <Home className="w-4 h-4" />
             </button>
             <button
               onClick={() => { router.push('/docs'); handleClose(); }}
               className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              title="文档"
+              title={t.common.docs}
             >
               <BookOpen className="w-4 h-4" />
             </button>
@@ -303,7 +308,7 @@ export function Sidebar() {
               target="_blank"
               rel="noopener noreferrer"
               className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              title="GitHub"
+              title={t.common.github}
             >
               <Github className="w-4 h-4" />
             </a>

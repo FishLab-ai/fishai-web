@@ -16,6 +16,7 @@ import { useAppStore, type UserInfo } from '@/lib/store';
 import { API_BASE } from '@/lib/api';
 import { Fish, Loader2, Github } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useI18n, type Translations } from '@/lib/i18n';
 
 interface AuthDialogProps {
   open: boolean;
@@ -45,14 +46,14 @@ function useGithubConfig(open: boolean) {
   return { githubEnabled, configLoaded };
 }
 
-function useLoginForm(setUser: (user: UserInfo) => void, onClose: () => void) {
+function useLoginForm(setUser: (user: UserInfo) => void, onClose: () => void, t: Translations) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!loginEmail || !loginPassword) {
-      toast({ title: '请填写邮箱和密码', variant: 'destructive' });
+      toast({ title: t.auth.fillEmailPassword, variant: 'destructive' });
       return;
     }
     setLoginLoading(true);
@@ -64,16 +65,16 @@ function useLoginForm(setUser: (user: UserInfo) => void, onClose: () => void) {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: data.error || '登录失败', variant: 'destructive' });
+        toast({ title: data.error || t.auth.loginFailed, variant: 'destructive' });
         return;
       }
       setUser(data as UserInfo);
-      toast({ title: '登录成功' });
+      toast({ title: t.auth.loginSuccess });
       onClose();
       setLoginEmail('');
       setLoginPassword('');
     } catch {
-      toast({ title: '网络错误', variant: 'destructive' });
+      toast({ title: t.common.networkError, variant: 'destructive' });
     } finally {
       setLoginLoading(false);
     }
@@ -82,7 +83,7 @@ function useLoginForm(setUser: (user: UserInfo) => void, onClose: () => void) {
   return { loginEmail, setLoginEmail, loginPassword, setLoginPassword, loginLoading, handleLogin };
 }
 
-function useRegisterForm(setUser: (user: UserInfo) => void, onClose: () => void) {
+function useRegisterForm(setUser: (user: UserInfo) => void, onClose: () => void, t: Translations) {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regName, setRegName] = useState('');
@@ -90,7 +91,7 @@ function useRegisterForm(setUser: (user: UserInfo) => void, onClose: () => void)
 
   const handleRegister = async () => {
     if (!regEmail || !regPassword) {
-      toast({ title: '请填写邮箱和密码', variant: 'destructive' });
+      toast({ title: t.auth.fillEmailPassword, variant: 'destructive' });
       return;
     }
     setRegLoading(true);
@@ -102,17 +103,17 @@ function useRegisterForm(setUser: (user: UserInfo) => void, onClose: () => void)
       });
       const data = await res.json();
       if (!res.ok) {
-        toast({ title: data.error || '注册失败', variant: 'destructive' });
+        toast({ title: data.error || t.auth.registerFailed, variant: 'destructive' });
         return;
       }
       setUser(data as UserInfo);
-      toast({ title: '注册成功' });
+      toast({ title: t.auth.registerSuccess });
       onClose();
       setRegEmail('');
       setRegPassword('');
       setRegName('');
     } catch {
-      toast({ title: '网络错误', variant: 'destructive' });
+      toast({ title: t.common.networkError, variant: 'destructive' });
     } finally {
       setRegLoading(false);
     }
@@ -124,11 +125,12 @@ function useRegisterForm(setUser: (user: UserInfo) => void, onClose: () => void)
 /* eslint-disable max-lines-per-function */
 export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const { setUser } = useAppStore();
+  const { t } = useI18n();
   const { githubEnabled, configLoaded } = useGithubConfig(open);
 
   const handleClose = () => onOpenChange(false);
-  const loginForm = useLoginForm(setUser, handleClose);
-  const registerForm = useRegisterForm(setUser, handleClose);
+  const loginForm = useLoginForm(setUser, handleClose, t);
+  const registerForm = useRegisterForm(setUser, handleClose, t);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -138,20 +140,20 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <Fish className="w-4 h-4 text-white" />
             </div>
-            FishAI 账号
+            {t.auth.title}
           </DialogTitle>
-          <DialogDescription>登录或注册以保存对话历史</DialogDescription>
+          <DialogDescription>{t.auth.description}</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">登录</TabsTrigger>
-            <TabsTrigger value="register">注册</TabsTrigger>
+            <TabsTrigger value="login">{t.common.login}</TabsTrigger>
+            <TabsTrigger value="register">{t.common.register}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email">邮箱</Label>
+              <Label htmlFor="login-email">{t.auth.email}</Label>
               <Input
                 id="login-email"
                 type="email"
@@ -162,7 +164,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="login-password">密码</Label>
+              <Label htmlFor="login-password">{t.auth.password}</Label>
               <Input
                 id="login-password"
                 type="password"
@@ -178,22 +180,22 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
             >
               {loginForm.loginLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              登录
+              {t.common.login}
             </Button>
           </TabsContent>
 
           <TabsContent value="register" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="reg-name">昵称（可选）</Label>
+              <Label htmlFor="reg-name">{t.auth.nicknameOptional}</Label>
               <Input
                 id="reg-name"
-                placeholder="FishAI 用户"
+                placeholder={t.auth.nicknamePlaceholder}
                 value={registerForm.regName}
                 onChange={(e) => registerForm.setRegName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reg-email">邮箱</Label>
+              <Label htmlFor="reg-email">{t.auth.email}</Label>
               <Input
                 id="reg-email"
                 type="email"
@@ -203,7 +205,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reg-password">密码</Label>
+              <Label htmlFor="reg-password">{t.auth.password}</Label>
               <Input
                 id="reg-password"
                 type="password"
@@ -219,7 +221,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
             >
               {registerForm.regLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              注册
+              {t.common.register}
             </Button>
           </TabsContent>
         </Tabs>
@@ -232,7 +234,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               </div>
               <div className="relative flex justify-center text-xs">
                 <span className="bg-white dark:bg-neutral-900 px-2 text-neutral-400 dark:text-neutral-500">
-                  第三方登录
+                  {t.auth.thirdPartyLogin}
                 </span>
               </div>
             </div>
@@ -244,7 +246,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               className="w-full flex items-center justify-center gap-2 h-10"
             >
               <Github className="w-4 h-4" />
-              GitHub 一键登录
+              {t.auth.githubOneClick}
             </Button>
           </>
         )}

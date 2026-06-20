@@ -3,6 +3,7 @@
 import { useRef, useEffect } from 'react';
 import { Brain, Globe, ArrowUp, StopCircle } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { useI18n } from '@/lib/i18n';
 
 interface ChatInputProps {
   input: string;
@@ -28,6 +29,7 @@ function useTextareaHeight(input: string) {
 
 export function ChatInput({ input, setInput, onSend, onStop, streaming }: ChatInputProps) {
   const { deepThinking, setDeepThinking, webSearch, setWebSearch } = useAppStore();
+  const { t } = useI18n();
   const textareaRef = useTextareaHeight(input);
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -54,7 +56,7 @@ export function ChatInput({ input, setInput, onSend, onStop, streaming }: ChatIn
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <Brain className="w-3 h-3" />
-              深度思考
+              {t.common.deepThinking}
             </button>
             <button
               onClick={() => setWebSearch(!webSearch)}
@@ -66,7 +68,7 @@ export function ChatInput({ input, setInput, onSend, onStop, streaming }: ChatIn
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <Globe className="w-3 h-3" />
-              联网搜索
+              {t.common.webSearch}
             </button>
           </div>
 
@@ -76,7 +78,7 @@ export function ChatInput({ input, setInput, onSend, onStop, streaming }: ChatIn
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}
-              placeholder="给 FishAI 发消息…"
+              placeholder={t.chat.placeholder}
               rows={1}
               disabled={streaming}
               className="flex-1 min-h-[36px] max-h-[160px] resize-none text-sm bg-transparent text-neutral-800 dark:text-neutral-200 placeholder:text-neutral-400 dark:placeholder:text-neutral-600 outline-none leading-relaxed disabled:opacity-50"
@@ -85,7 +87,7 @@ export function ChatInput({ input, setInput, onSend, onStop, streaming }: ChatIn
               <button
                 onClick={onStop}
                 className="h-8 w-8 rounded-xl bg-red-500 hover:bg-red-600 text-white shrink-0 flex items-center justify-center transition-all duration-200 active:scale-90"
-                title="停止生成"
+                title={t.common.stopGenerating}
               >
                 <StopCircle className="w-4 h-4" />
               </button>
@@ -102,7 +104,7 @@ export function ChatInput({ input, setInput, onSend, onStop, streaming }: ChatIn
         </div>
 
         <p className="mt-1.5 text-center text-[10px] text-neutral-300 dark:text-neutral-700 select-none">
-          FishAI 可能会犯错，请核实重要信息
+          {t.common.disclaimer}
         </p>
       </div>
     </div>

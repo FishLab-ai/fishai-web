@@ -8,14 +8,10 @@ import { ChatMessageItem } from '@/components/chat-message';
 import { Sidebar } from '@/components/sidebar';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { AuthDialog } from '@/components/auth-dialog';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { ChevronDown, Fish, Code2, Sparkles, Plus, AlignLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
-const suggestions = [
-  { id: 'code', icon: Code2, label: 'Python 快排算法', prompt: '用 Python 写一个快速排序算法，加上详细注释' },
-  { id: 'rust', icon: Sparkles, label: '解释 Rust 所有权', prompt: '用通俗易懂的方式解释 Rust 的所有权机制' },
-  { id: 'news', icon: Fish, label: '今天有什么新闻', prompt: '今天有什么值得关注的科技新闻？' },
-];
+import { useI18n, type Translations } from '@/lib/i18n';
 
 const STREAM_TIMEOUT_MS = 30_000;
 
@@ -64,7 +60,13 @@ function useChatStream(updateMessage: (id: string, updates: Partial<ChatMessage>
   return { thinkingRef, searchResultsRef, bufferRef, startTypewriter, stopTypewriter, streamingMsgId };
 }
 
-function SuggestionsList({ onSuggestionClick, streaming }: { onSuggestionClick: (prompt: string) => void; streaming: boolean }) {
+function SuggestionsList({ onSuggestionClick, streaming, t }: { onSuggestionClick: (prompt: string) => void; streaming: boolean; t: Translations }) {
+  const suggestions = [
+    { id: 'code', icon: Code2, label: t.chat.suggestions.code, prompt: t.chat.suggestionPrompts.code },
+    { id: 'rust', icon: Sparkles, label: t.chat.suggestions.rust, prompt: t.chat.suggestionPrompts.rust },
+    { id: 'news', icon: Fish, label: t.chat.suggestions.news, prompt: t.chat.suggestionPrompts.news },
+  ];
+
   return (
     <div className="flex flex-col sm:flex-row gap-2 w-full max-w-lg">
       {suggestions.map((s) => (
@@ -104,7 +106,7 @@ function MessageList({ messages, streaming, streamingMsgId, activeDeepThinking }
 function processSSELine(data: string, aid: string, updateMessage: (id: string, updates: Partial<ChatMessage>) => void,
   setCurrentConversationId: (id: string) => void, refreshConversations: () => void,
   bufferRef: React.MutableRefObject<string>, thinkingRef: React.MutableRefObject<string>,
-  searchResultsRef: React.MutableRefObject<string>) {
+  searchResultsRef: React.MutableRefObject<string>, t: Translations) {
   if (data === '[DONE]') {return;}
   try {
     const obj = JSON.parse(data);
@@ -119,7 +121,7 @@ function processSSELine(data: string, aid: string, updateMessage: (id: string, u
     } else if (obj.type === 'done') {
       if (obj.conversationId) {setCurrentConversationId(obj.conversationId); refreshConversations();}
     } else if (obj.type === 'error') {
-      toast({ title: obj.error || '请求失败', variant: 'destructive' });
+      toast({ title: obj.error || t.chat.requestFailed, variant: 'destructive' });
     } else if (obj.content) {
       bufferRef.current += obj.content;
     }
@@ -129,61 +131,62 @@ function processSSELine(data: string, aid: string, updateMessage: (id: string, u
 }
 
 function handleStreamError(err: unknown, aid: string, updateMessage: (id: string, updates: Partial<ChatMessage>) => void,
-  bufferRef: React.MutableRefObject<string>, thinkingRef: React.MutableRefObject<string>) {
+  bufferRef: React.MutableRefObject<string>, thinkingRef: React.MutableRefObject<string>, t: Translations) {
   if (err instanceof DOMException && err.name === 'AbortError') {
     if (bufferRef.current.length === 0 && thinkingRef.current.length === 0) {
-      updateMessage(aid, { content: '已停止生成。' });
+      updateMessage(aid, { content: t.chat.stoppedGeneration });
     }
   } else {
-    const errMsg = err instanceof Error ? err.message : '未知错误';
+    const errMsg = err instanceof Error ? err.message : '';
     if (bufferRef.current.length === 0 && thinkingRef.current.length === 0) {
-      updateMessage(aid, { content: `出了点问题：${errMsg}，请重试。` });
+      updateMessage(aid, { content: `${t.chat.somethingWentWrong}：${errMsg}` });
     } else {
-      toast({ title: `部分内容可能缺失：${errMsg}`, variant: 'destructive' });
+      toast({ title: `${t.chat.partialContentMissing}：${errMsg}`, variant: 'destructive' });
     }
   }
 }
 
-function ChatHeader({ onOpenSidebar, onNewChat }: { onOpenSidebar: () => void; onNewChat: () => void }) {
+function ChatHeader({ onOpenSidebar, onNewChat, t }: { onOpenSidebar: () => void; onNewChat: () => void; t: Translations }) {
   return (
     <header className="fixed top-0 left-0 right-0 z-20 flex items-center h-11 px-3">
       <button onClick={onOpenSidebar}
         className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
-        title="聊天记录">
+        title={t.chat.chatHistory}>
         <AlignLeft className="w-4 h-4" />
       </button>
+      <LanguageSwitcher />
       <button onClick={onNewChat}
         className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
-        title="新对话">
+        title={t.chat.newChat}>
         <Plus className="w-4 h-4" />
       </button>
     </header>
   );
 }
 
-function ScrollToBottomBtn({ onClick }: { onClick: () => void }) {
+function ScrollToBottomBtn({ onClick, t }: { onClick: () => void; t: Translations }) {
   return (
     <div className="fixed bottom-40 left-0 right-0 flex justify-center z-20 pointer-events-none">
       <button onClick={onClick}
         className="pointer-events-auto h-8 px-3 rounded-full bg-white dark:bg-neutral-800 border border-neutral-200/80 dark:border-neutral-700/60 shadow-lg flex items-center gap-1.5 text-xs font-medium text-neutral-500 dark:text-neutral-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all duration-200 hover:border-emerald-300/60 dark:hover:border-emerald-600/40">
         <ChevronDown className="w-3.5 h-3.5" />
-        回到底部
+        {t.common.scrollToBottom}
       </button>
     </div>
   );
 }
 
-function WelcomeScreen({ onSuggestionClick, streaming }: { onSuggestionClick: (prompt: string) => void; streaming: boolean }) {
+function WelcomeScreen({ onSuggestionClick, streaming, t }: { onSuggestionClick: (prompt: string) => void; streaming: boolean; t: Translations }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[55vh] gap-6">
       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-xl shadow-emerald-500/20">
         <Fish className="w-7 h-7 text-white" />
       </div>
       <div className="text-center space-y-1.5">
-        <p className="text-base font-medium text-neutral-700 dark:text-neutral-300">有什么可以帮你的？</p>
-        <p className="text-xs text-neutral-400 dark:text-neutral-500">试试下面的快捷指令</p>
+        <p className="text-base font-medium text-neutral-700 dark:text-neutral-300">{t.chat.welcomeTitle}</p>
+        <p className="text-xs text-neutral-400 dark:text-neutral-500">{t.chat.welcomeSubtitle}</p>
       </div>
-      <SuggestionsList onSuggestionClick={onSuggestionClick} streaming={streaming} />
+      <SuggestionsList onSuggestionClick={onSuggestionClick} streaming={streaming} t={t} />
     </div>
   );
 }
@@ -192,7 +195,7 @@ function readSSEStream(reader: ReadableStreamDefaultReader<Uint8Array>, controll
   updateMessage: (id: string, updates: Partial<ChatMessage>) => void,
   setCurrentConversationId: (id: string) => void, refreshConversations: () => void,
   bufferRef: React.MutableRefObject<string>, thinkingRef: React.MutableRefObject<string>,
-  searchResultsRef: React.MutableRefObject<string>) {
+  searchResultsRef: React.MutableRefObject<string>, t: Translations) {
   const dec = new TextDecoder();
   let sseBuf = '';
   return new Promise<void>(async (resolve) => {
@@ -206,7 +209,7 @@ function readSSEStream(reader: ReadableStreamDefaultReader<Uint8Array>, controll
         if (!line.startsWith('data: ')) {continue;}
         if (controller.signal.aborted) {break;}
         const data = line.slice(6).trim();
-        processSSELine(data, aid, updateMessage, setCurrentConversationId, refreshConversations, bufferRef, thinkingRef, searchResultsRef);
+        processSSELine(data, aid, updateMessage, setCurrentConversationId, refreshConversations, bufferRef, thinkingRef, searchResultsRef, t);
       }
     }
     resolve();
@@ -216,7 +219,7 @@ function readSSEStream(reader: ReadableStreamDefaultReader<Uint8Array>, controll
 function useSendCallback({ streaming, user, currentConversationId, deepThinking, webSearch, memoryMode,
   addMessage, updateMessage, setCurrentConversationId, refreshConversations,
   setInput, setStreaming, setActiveDeepThinking, scrollToBottom, startTypewriter,
-  sendingRef, abortRef, isNearBottomRef, bufferRef, thinkingRef, searchResultsRef }: {
+  sendingRef, abortRef, isNearBottomRef, bufferRef, thinkingRef, searchResultsRef, t }: {
   streaming: boolean; user: UserInfo | null; currentConversationId: string | null;
   deepThinking: boolean; webSearch: boolean; memoryMode: string;
   addMessage: (m: ChatMessage) => void; updateMessage: (id: string, u: Partial<ChatMessage>) => void;
@@ -226,11 +229,12 @@ function useSendCallback({ streaming, user, currentConversationId, deepThinking,
   sendingRef: React.MutableRefObject<boolean>; abortRef: React.MutableRefObject<AbortController | null>;
   isNearBottomRef: React.MutableRefObject<boolean>; bufferRef: React.MutableRefObject<string>;
   thinkingRef: React.MutableRefObject<string>; searchResultsRef: React.MutableRefObject<string>;
+  t: Translations;
 }) {
   return useCallback(async (text: string) => {
     const content = text.trim();
     if (!content || sendingRef.current || streaming) {return;}
-    if (!user) {toast({ title: '请先登录', description: '登录后对话记录会被保存', variant: 'destructive' }); return;}
+    if (!user) {toast({ title: t.chat.pleaseLogin, description: t.chat.loginToSave, variant: 'destructive' }); return;}
     sendingRef.current = true;
     setActiveDeepThinking(deepThinking);
     const aid = `a_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -245,7 +249,7 @@ function useSendCallback({ streaming, user, currentConversationId, deepThinking,
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const resetTimeout = () => {
       if (timeoutId) {clearTimeout(timeoutId);}
-      timeoutId = setTimeout(() => {controller.abort(); toast({ title: '响应超时，请重试', variant: 'destructive' });}, STREAM_TIMEOUT_MS);
+      timeoutId = setTimeout(() => {controller.abort(); toast({ title: t.chat.responseTimeout, variant: 'destructive' });}, STREAM_TIMEOUT_MS);
     };
     resetTimeout();
     try {
@@ -254,29 +258,30 @@ function useSendCallback({ streaming, user, currentConversationId, deepThinking,
         body: JSON.stringify({ message: content, conversationId: currentConversationId, userId: user?.id, deepThinking, webSearch, memoryMode }),
         signal: controller.signal,
       });
-      if (!res.ok) {const errData = await res.json().catch(() => ({})); throw new Error(errData.error || '请求失败');}
+      if (!res.ok) {const errData = await res.json().catch(() => ({})); throw new Error(errData.error || t.chat.requestFailed);}
       const ct = res.headers.get('content-type') || '';
-      if (!ct.includes('text/event-stream')) {const errText = await res.text().catch(() => ''); throw new Error(errText || '服务器响应异常');}
+      if (!ct.includes('text/event-stream')) {const errText = await res.text().catch(() => ''); throw new Error(errText || t.chat.serverResponseError);}
       const reader = res.body?.getReader();
-      if (!reader) {throw new Error('无响应流');}
-      await readSSEStream(reader, controller, aid, updateMessage, setCurrentConversationId, refreshConversations, bufferRef, thinkingRef, searchResultsRef);
+      if (!reader) {throw new Error(t.chat.noResponseStream);}
+      await readSSEStream(reader, controller, aid, updateMessage, setCurrentConversationId, refreshConversations, bufferRef, thinkingRef, searchResultsRef, t);
     } catch (err: unknown) {
-      handleStreamError(err, aid, updateMessage, bufferRef, thinkingRef);
+      handleStreamError(err, aid, updateMessage, bufferRef, thinkingRef, t);
     } finally {
       if (timeoutId) {clearTimeout(timeoutId);}
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streaming, scrollToBottom, startTypewriter, addMessage, updateMessage, currentConversationId, setCurrentConversationId, refreshConversations, user, deepThinking, webSearch, memoryMode, setStreaming, setInput, setActiveDeepThinking]);
+  }, [streaming, scrollToBottom, startTypewriter, addMessage, updateMessage, currentConversationId, setCurrentConversationId, refreshConversations, user, deepThinking, webSearch, memoryMode, setStreaming, setInput, setActiveDeepThinking, t]);
 }
 
 function useChatActions({ user, currentConversationId, setCurrentConversationId, setConversations, messages, setMessages,
-  addMessage, updateMessage, streaming, setStreaming, deepThinking, webSearch, memoryMode }: {
+  addMessage, updateMessage, streaming, setStreaming, deepThinking, webSearch, memoryMode, t }: {
   user: UserInfo | null; currentConversationId: string | null;
   setCurrentConversationId: (id: string) => void; setConversations: (c: ConversationItem[]) => void;
   messages: ChatMessage[]; setMessages: (m: ChatMessage[]) => void;
   addMessage: (m: ChatMessage) => void; updateMessage: (id: string, u: Partial<ChatMessage>) => void;
   streaming: boolean; setStreaming: (v: boolean) => void;
   deepThinking: boolean; webSearch: boolean; memoryMode: string;
+  t: Translations;
 }) {
   const [input, setInput] = useState('');
   const [activeDeepThinking, setActiveDeepThinking] = useState(false);
@@ -320,17 +325,17 @@ function useChatActions({ user, currentConversationId, setCurrentConversationId,
   }, [user, setConversations]);
 
   const handleNewChat = useCallback(async () => {
-    if (!user) {toast({ title: '请先登录', description: '登录后可创建新对话', variant: 'destructive' }); return;}
+    if (!user) {toast({ title: t.chat.pleaseLogin, description: t.chat.loginToCreate, variant: 'destructive' }); return;}
     try {
       const res = await fetch(`${API_BASE}/api/conversations`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, title: '新对话' }),
+        body: JSON.stringify({ userId: user.id, title: t.chat.newConversation }),
       });
       if (res.ok) {const conv = await res.json(); setCurrentConversationId(conv.id); setMessages([]); refreshConversations();}
     } catch {
-      toast({ title: '创建失败', variant: 'destructive' });
+      toast({ title: t.chat.createFailed, variant: 'destructive' });
     }
-  }, [user, setCurrentConversationId, setMessages, refreshConversations]);
+  }, [user, setCurrentConversationId, setMessages, refreshConversations, t]);
 
   const handleStop = useCallback(() => {
     if (abortRef.current) {abortRef.current.abort(); abortRef.current = null;}
@@ -341,7 +346,7 @@ function useChatActions({ user, currentConversationId, setCurrentConversationId,
     streaming, user, currentConversationId, deepThinking, webSearch, memoryMode,
     addMessage, updateMessage, setCurrentConversationId, refreshConversations,
     setInput, setStreaming, setActiveDeepThinking, scrollToBottom, startTypewriter,
-    sendingRef, abortRef, isNearBottomRef, bufferRef, thinkingRef, searchResultsRef,
+    sendingRef, abortRef, isNearBottomRef, bufferRef, thinkingRef, searchResultsRef, t,
   });
 
   return {
@@ -356,10 +361,11 @@ export default function ChatPage() {
     setConversations, messages, setMessages, addMessage, updateMessage,
     streaming, setStreaming, deepThinking, webSearch, memoryMode, setSidebarOpen,
   } = useAppStore();
+  const { t } = useI18n();
 
   const chatActions = useChatActions({
     user, currentConversationId, setCurrentConversationId, setConversations, messages, setMessages,
-    addMessage, updateMessage, streaming, setStreaming, deepThinking, webSearch, memoryMode,
+    addMessage, updateMessage, streaming, setStreaming, deepThinking, webSearch, memoryMode, t,
   });
 
   const {
@@ -372,14 +378,14 @@ export default function ChatPage() {
       <main ref={scrollContainerRef} onScroll={handleScroll} className="h-full overflow-y-auto scroll-smooth">
         <div className="max-w-2xl mx-auto px-4 pt-14 pb-52">
           {messages.length === 0
-            ? <WelcomeScreen onSuggestionClick={send} streaming={streaming} />
+            ? <WelcomeScreen onSuggestionClick={send} streaming={streaming} t={t} />
             : <MessageList messages={messages} streaming={streaming} streamingMsgId={streamingMsgId} activeDeepThinking={activeDeepThinking} />}
           <div ref={chatEndRef} className="h-1" />
         </div>
       </main>
-      <ChatHeader onOpenSidebar={() => setSidebarOpen(true)} onNewChat={handleNewChat} />
+      <ChatHeader onOpenSidebar={() => setSidebarOpen(true)} onNewChat={handleNewChat} t={t} />
       {showScrollBtn && (
-        <ScrollToBottomBtn onClick={() => {setShowScrollBtn(false); scrollToBottom();}} />
+        <ScrollToBottomBtn onClick={() => {setShowScrollBtn(false); scrollToBottom();}} t={t} />
       )}
       <div className="fixed bottom-0 left-0 right-0 z-20">
         <ChatInput input={input} setInput={setInput} onSend={() => send(input)} onStop={handleStop} streaming={streaming} />

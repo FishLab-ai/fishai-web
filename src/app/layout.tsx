@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { I18nProvider } from "@/lib/i18n";
 import { CookieConsent } from "@/components/cookie-consent";
 
 const geistSans = Geist({
@@ -21,15 +22,15 @@ const notoSansSC = Noto_Sans_SC({
 });
 
 export const metadata: Metadata = {
-  title: "FishAI - FishLab-ai 自研 AI 助手",
-  description: "FishAI — FishLab-ai 自研 AI 助手，Rust 推理引擎，4-bit 量化，轻量而聪明",
+  title: "FishAI - FishLab-ai AI Assistant",
+  description: "FishAI — FishLab-ai self-developed AI assistant, Rust inference engine, 4-bit quantized, lightweight and smart",
   keywords: ["FishAI", "FishLab-ai", "Rust", "GPT", "4-bit", "AI", "self-developed"],
   authors: [{ name: "FishLab-ai" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "FishAI - FishLab-ai 自研 AI 助手",
+    title: "FishAI - FishLab-ai AI Assistant",
     description: "Rust Engine + 4-bit Quantized, No Git LFS Required",
     url: "https://github.com/FishLab-ai",
     siteName: "FishAI",
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FishAI - FishLab-ai 自研 AI 助手",
+    title: "FishAI - FishLab-ai AI Assistant",
     description: "Rust Engine + 4-bit Quantized, No Git LFS Required",
   },
 };
@@ -76,9 +77,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoSansSC.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
-        <CookieConsent />
+        <I18nProvider>
+          {children}
+          <Toaster />
+          <CookieConsent />
+        </I18nProvider>
       </body>
     </html>
   );

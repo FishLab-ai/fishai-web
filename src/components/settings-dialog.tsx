@@ -27,6 +27,7 @@ import {
   PinOff,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useI18n, type Translations } from '@/lib/i18n';
 
 interface NoteItem {
   id: string;
@@ -40,28 +41,8 @@ interface NoteItem {
   updatedAt: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  personal: '个人信息',
-  preference: '偏好',
-  knowledge: '知识',
-  schedule: '日程',
-  general: '其他',
-};
-
-const THEME_OPTIONS: { key: ThemeMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: 'light', label: '浅色', icon: Sun },
-  { key: 'dark', label: '深色', icon: Moon },
-  { key: 'system', label: '跟随系统', icon: Monitor },
-];
-
-const MEMORY_MODES: { key: 'aggressive' | 'balanced' | 'passive'; label: string; icon: React.ComponentType<{ className?: string }>; desc: string }[] = [
-  { key: 'aggressive', label: '积极', icon: Zap, desc: '更频繁地记住信息' },
-  { key: 'balanced', label: '平衡', icon: Brain, desc: '自然积累记忆' },
-  { key: 'passive', label: '被动', icon: Turtle, desc: '较少主动记忆' },
-];
-
 /* eslint-disable max-lines-per-function */
-function useNotesCRUD(user: UserInfo | null) {
+function useNotesCRUD(user: UserInfo | null, t: Translations) {
   const [notes, setNotes] = useState<NoteItem[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -91,7 +72,7 @@ function useNotesCRUD(user: UserInfo | null) {
     if (!user) {return;}
     const content = newContent.trim();
     if (!content) {
-      toast({ title: '请输入内容', variant: 'destructive' });
+      toast({ title: t.settings.contentRequired, variant: 'destructive' });
       return;
     }
     try {
@@ -108,9 +89,9 @@ function useNotesCRUD(user: UserInfo | null) {
         fetchNotes();
       }
     } catch {
-      toast({ title: '创建失败', variant: 'destructive' });
+      toast({ title: t.settings.createFailed, variant: 'destructive' });
     }
-  }, [user, newContent, newCategory, newPinned, fetchNotes]);
+  }, [user, newContent, newCategory, newPinned, fetchNotes, t]);
 
   const handleUpdate = useCallback(async (id: string) => {
     try {
@@ -124,9 +105,9 @@ function useNotesCRUD(user: UserInfo | null) {
         fetchNotes();
       }
     } catch {
-      toast({ title: '保存失败', variant: 'destructive' });
+      toast({ title: t.settings.saveFailed, variant: 'destructive' });
     }
-  }, [editContent, fetchNotes]);
+  }, [editContent, fetchNotes, t]);
 
   const handleTogglePin = useCallback(async (id: string, currentPinned: boolean) => {
     try {
@@ -137,12 +118,12 @@ function useNotesCRUD(user: UserInfo | null) {
       });
       if (res.ok) {
         fetchNotes();
-        toast({ title: currentPinned ? '已取消标记' : '已标记为重要' });
+        toast({ title: currentPinned ? t.settings.unpinned : t.settings.pinned });
       }
     } catch {
-      toast({ title: '操作失败', variant: 'destructive' });
+      toast({ title: t.settings.togglePinFailed, variant: 'destructive' });
     }
-  }, [fetchNotes]);
+  }, [fetchNotes, t]);
 
   const handleDelete = useCallback(async (id: string) => {
     try {
@@ -152,9 +133,9 @@ function useNotesCRUD(user: UserInfo | null) {
         fetchNotes();
       }
     } catch {
-      toast({ title: '删除失败', variant: 'destructive' });
+      toast({ title: t.settings.deleteFailed, variant: 'destructive' });
     }
-  }, [fetchNotes]);
+  }, [fetchNotes, t]);
 
   return {
     notes, notesLoading, editingId, editContent, creating,
@@ -175,6 +156,7 @@ function NoteCard({
   onEditSave,
   onTogglePin,
   onDelete,
+  t,
 }: {
   note: NoteItem;
   editingId: string | null;
@@ -185,8 +167,20 @@ function NoteCard({
   onEditSave: (id: string) => void;
   onTogglePin: (id: string, pinned: boolean) => void;
   onDelete: (id: string) => void;
+  t: Translations;
 }) {
   const isEditing = editingId === note.id;
+
+  const getCategoryLabel = (cat: string) => {
+    const map: Record<string, string> = {
+      personal: t.settings.categories.personal,
+      preference: t.settings.categories.preference,
+      knowledge: t.settings.categories.knowledge,
+      schedule: t.settings.categories.schedule,
+      general: t.settings.categories.general,
+    };
+    return map[cat] || cat;
+  };
 
   return (
     <div
@@ -206,11 +200,11 @@ function NoteCard({
           />
           <div className="flex items-center gap-2 justify-end">
             <Button variant="ghost" size="sm" className="h-6 text-[11px] text-neutral-400" onClick={onEditCancel}>
-              取消
+              {t.common.cancel}
             </Button>
             <Button size="sm" className="h-6 text-[11px] bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => onEditSave(note.id)}>
               <Check className="w-3 h-3 mr-1" />
-              保存
+              {t.common.save}
             </Button>
           </div>
         </div>
@@ -219,12 +213,12 @@ function NoteCard({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500 dark:text-emerald-400">
-                {CATEGORY_LABELS[note.category] || note.category}
+                {getCategoryLabel(note.category)}
               </span>
               {note.pinned && (
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">
                   <Pin className="w-2 h-2" />
-                  重要
+                  {t.common.important}
                 </span>
               )}
             </div>
@@ -236,7 +230,7 @@ function NoteCard({
                     ? 'text-amber-500 hover:text-amber-600'
                     : 'text-neutral-300 dark:text-neutral-600 hover:text-amber-500'
                 }`}
-                title={note.pinned ? '取消重要' : '标记为重要'}
+                title={note.pinned ? t.settings.unpinned : t.settings.pinned}
               >
                 <Pin className="w-3 h-3" />
               </button>
@@ -273,6 +267,7 @@ function NotesList({
   onEditSave,
   onTogglePin,
   onDelete,
+  t,
 }: {
   notes: NoteItem[];
   notesLoading: boolean;
@@ -283,11 +278,12 @@ function NotesList({
   onEditSave: (id: string) => void;
   onTogglePin: (id: string, pinned: boolean) => void;
   onDelete: (id: string) => void;
+  t: Translations;
 }) {
   if (notesLoading && notes.length === 0) {
     return (
       <div className="py-6 text-center">
-        <p className="text-xs text-neutral-400">加载中...</p>
+        <p className="text-xs text-neutral-400">{t.common.loading}</p>
       </div>
     );
   }
@@ -295,9 +291,9 @@ function NotesList({
   if (notes.length === 0) {
     return (
       <div className="py-6 text-center">
-        <p className="text-xs text-neutral-400 dark:text-neutral-600">记事本是空的</p>
+        <p className="text-xs text-neutral-400 dark:text-neutral-600">{t.settings.notebookEmpty}</p>
         <p className="text-[10px] text-neutral-300 dark:text-neutral-700 mt-1">
-          点 + 新建笔记，或让 AI 帮你记
+          {t.settings.notebookEmptyHint}
         </p>
       </div>
     );
@@ -317,6 +313,7 @@ function NotesList({
           onEditSave={onEditSave}
           onTogglePin={onTogglePin}
           onDelete={onDelete}
+          t={t}
         />
       ))}
     </div>
@@ -332,6 +329,7 @@ function CreateNoteForm({
   onContentChange,
   onCancel,
   onSave,
+  t,
 }: {
   newCategory: string;
   newPinned: boolean;
@@ -341,7 +339,19 @@ function CreateNoteForm({
   onContentChange: (v: string) => void;
   onCancel: () => void;
   onSave: () => void;
+  t: Translations;
 }) {
+  const getCategoryLabel = (cat: string) => {
+    const map: Record<string, string> = {
+      personal: t.settings.categories.personal,
+      preference: t.settings.categories.preference,
+      knowledge: t.settings.categories.knowledge,
+      schedule: t.settings.categories.schedule,
+      general: t.settings.categories.general,
+    };
+    return map[cat] || cat;
+  };
+
   return (
     <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/20 p-3 space-y-2 mb-2">
       <div className="flex items-center gap-2">
@@ -350,8 +360,8 @@ function CreateNoteForm({
           onChange={(e) => onCategoryChange(e.target.value)}
           className="text-xs bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-1.5 py-0.5 text-neutral-600 dark:text-neutral-400"
         >
-          {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+          {Object.entries({ personal: '', preference: '', knowledge: '', schedule: '', general: '' } as Record<string, string>).map(([k]) => (
+            <option key={k} value={k}>{getCategoryLabel(k)}</option>
           ))}
         </select>
         <button
@@ -364,23 +374,23 @@ function CreateNoteForm({
           }`}
         >
           {newPinned ? <Pin className="w-2.5 h-2.5" /> : <PinOff className="w-2.5 h-2.5" />}
-          {newPinned ? '重要' : '普通'}
+          {newPinned ? t.common.important : t.common.normal}
         </button>
       </div>
       <textarea
         value={newContent}
         onChange={(e) => onContentChange(e.target.value)}
-        placeholder="写一条笔记..."
+        placeholder={t.settings.notePlaceholder}
         rows={3}
         className="w-full text-xs bg-transparent border-none outline-none resize-none placeholder:text-neutral-400 text-neutral-600 dark:text-neutral-400 leading-relaxed"
         autoFocus
       />
       <div className="flex items-center gap-2 justify-end">
         <Button variant="ghost" size="sm" className="h-6 text-[11px] text-neutral-400" onClick={onCancel}>
-          取消
+          {t.common.cancel}
         </Button>
         <Button size="sm" className="h-6 text-[11px] text-white bg-emerald-500 hover:bg-emerald-600" onClick={onSave}>
-          保存
+          {t.common.save}
         </Button>
       </div>
     </div>
@@ -390,8 +400,9 @@ function CreateNoteForm({
 /* eslint-disable max-lines-per-function */
 export function SettingsDialog() {
   const { settingsOpen, setSettingsOpen, themeMode, setThemeMode, memoryMode, setMemoryMode, user } = useAppStore();
+  const { t } = useI18n();
 
-  const notesState = useNotesCRUD(user);
+  const notesState = useNotesCRUD(user, t);
 
   // Fetch notes when dialog opens
   useEffect(() => {
@@ -400,20 +411,32 @@ export function SettingsDialog() {
     }
   }, [settingsOpen, notesState.fetchNotes]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const themeOptions: { key: ThemeMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: 'light', label: t.settings.light, icon: Sun },
+    { key: 'dark', label: t.settings.dark, icon: Moon },
+    { key: 'system', label: t.settings.system, icon: Monitor },
+  ];
+
+  const memoryModes: { key: 'aggressive' | 'balanced' | 'passive'; label: string; icon: React.ComponentType<{ className?: string }>; desc: string }[] = [
+    { key: 'aggressive', label: t.settings.aggressive, icon: Zap, desc: t.settings.aggressiveDesc },
+    { key: 'balanced', label: t.settings.balanced, icon: Brain, desc: t.settings.balancedDesc },
+    { key: 'passive', label: t.settings.passive, icon: Turtle, desc: t.settings.passiveDesc },
+  ];
+
   return (
     <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>设置</DialogTitle>
-          <DialogDescription>自定义 FishAI 的外观和行为</DialogDescription>
+          <DialogTitle>{t.settings.title}</DialogTitle>
+          <DialogDescription>{t.settings.description}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 mt-2">
           {/* ── Theme ── */}
           <section>
-            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">外观</h3>
+            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">{t.settings.appearance}</h3>
             <div className="grid grid-cols-3 gap-2">
-              {THEME_OPTIONS.map((opt) => {
+              {themeOptions.map((opt) => {
                 const Icon = opt.icon;
                 const isActive = themeMode === opt.key;
                 return (
@@ -438,10 +461,10 @@ export function SettingsDialog() {
 
           {/* ── Memory Frequency ── */}
           <section>
-            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">记忆频率</h3>
-            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mb-3">控制 AI 记住信息的积极程度，聊得越多它越记得牢</p>
+            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-1">{t.settings.memoryFrequency}</h3>
+            <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mb-3">{t.settings.memoryDescription}</p>
             <div className="space-y-1.5">
-              {MEMORY_MODES.map((mode) => {
+              {memoryModes.map((mode) => {
                 const Icon = mode.icon;
                 const isActive = memoryMode === mode.key;
                 return (
@@ -476,9 +499,9 @@ export function SettingsDialog() {
               <div>
                 <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-1.5">
                   <BookMarked className="w-4 h-4" />
-                  记事本
+                  {t.settings.notebook}
                 </h3>
-                <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">跨所有对话 · 重要的直接注入，普通的留给AI检索</p>
+                <p className="text-[11px] text-neutral-400 dark:text-neutral-500 mt-0.5">{t.settings.notebookDescription}</p>
               </div>
               {user && (
                 <Button
@@ -495,7 +518,7 @@ export function SettingsDialog() {
 
             {!user ? (
               <div className="py-8 text-center rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">
-                <p className="text-xs text-neutral-400 dark:text-neutral-600">登录后使用记事本</p>
+                <p className="text-xs text-neutral-400 dark:text-neutral-600">{t.settings.loginToUseNotebook}</p>
               </div>
             ) : (
               <>
@@ -509,6 +532,7 @@ export function SettingsDialog() {
                     onContentChange={notesState.setNewContent}
                     onCancel={() => notesState.setCreating(false)}
                     onSave={notesState.handleCreate}
+                    t={t}
                   />
                 )}
 
@@ -522,6 +546,7 @@ export function SettingsDialog() {
                   onEditSave={notesState.handleUpdate}
                   onTogglePin={notesState.handleTogglePin}
                   onDelete={notesState.handleDelete}
+                  t={t}
                 />
               </>
             )}

@@ -7,6 +7,7 @@ import { useAppStore, type UserInfo } from '@/lib/store';
 import { API_BASE } from '@/lib/api';
 import { AuthDialog } from '@/components/auth-dialog';
 import { UserProfileDialog } from '@/components/user-profile-dialog';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,18 +16,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
+import { useI18n } from '@/lib/i18n';
 
 function getCookie(name: string): string | null {
   const escapedName = name.replace(/[.$?*|{}()[\]\\/+^]/g, '\\$&');
   const match = document.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+  return match ? decodeURIComponent(match[1] ?? '') : null;
 }
 
 function deleteCookie(name: string) {
   document.cookie = `${name}=; Path=/; Max-Age=0`;
 }
 
-function handleGitHubCallback(setUser: (user: UserInfo) => void) {
+function handleGitHubCallback(setUser: (user: UserInfo) => void, t: ReturnType<typeof useI18n>['t']) {
   const params = new URLSearchParams(window.location.search);
 
   if (params.get('gh_auth') === '1') {
@@ -41,13 +43,13 @@ function handleGitHubCallback(setUser: (user: UserInfo) => void) {
         .then((data) => {
           if (data.id) {
             setUser(data as UserInfo);
-            toast({ title: 'GitHub 登录成功' });
+            toast({ title: t.home.githubLoginSuccess });
           } else {
-            toast({ title: 'GitHub 登录失败', variant: 'destructive' });
+            toast({ title: t.home.githubLoginFailed, variant: 'destructive' });
           }
         })
         .catch(() => {
-          toast({ title: 'GitHub 登录失败', variant: 'destructive' });
+          toast({ title: t.home.githubLoginFailed, variant: 'destructive' });
         })
         .finally(() => {
           deleteCookie('fishai-github-user');
@@ -62,17 +64,17 @@ function handleGitHubCallback(setUser: (user: UserInfo) => void) {
 
   const ghError = params.get('gh_error');
   if (ghError) {
-    const errorMessages: Record<string, string> = {
-      unconfigured: 'GitHub OAuth 未配置',
-      no_code: '授权码缺失',
-      token_failed: '获取令牌失败',
-      no_user: '获取用户信息失败',
-      no_email: '无法获取 GitHub 邮箱，请确保邮箱已公开',
-      csrf_invalid: '安全校验失败，请重试',
-      server_error: '服务器错误',
+    const errorMap: Record<string, string> = {
+      unconfigured: t.home.githubErrors.unconfigured,
+      no_code: t.home.githubErrors.no_code,
+      token_failed: t.home.githubErrors.token_failed,
+      no_user: t.home.githubErrors.no_user,
+      no_email: t.home.githubErrors.no_email,
+      csrf_invalid: t.home.githubErrors.csrf_invalid,
+      server_error: t.home.githubErrors.server_error,
     };
     toast({
-      title: errorMessages[ghError] || 'GitHub 登录失败',
+      title: errorMap[ghError] || t.home.githubLoginFailed,
       variant: 'destructive',
     });
     params.delete('gh_error');
@@ -86,6 +88,7 @@ function handleGitHubCallback(setUser: (user: UserInfo) => void) {
 /* eslint-disable max-lines-per-function */
 export default function HomePage() {
   const { initAuth, setUser, user, logout } = useAppStore();
+  const { t } = useI18n();
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -94,38 +97,39 @@ export default function HomePage() {
   }, [initAuth]);
 
   useEffect(() => {
-    handleGitHubCallback(setUser);
-  }, [setUser]);
+    handleGitHubCallback(setUser, t);
+  }, [setUser, t]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
       {/* Floating login - top right */}
-      <div className="fixed top-4 right-4 z-30">
+      <div className="fixed top-4 right-4 z-30 flex items-center gap-2">
+        <LanguageSwitcher />
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-shadow duration-200 cursor-pointer">
-                {(user.name || user.email)[0].toUpperCase()}
+                {(user.name || user.email)?.[0]?.toUpperCase()}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="bottom" className="w-52">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{user.name || '用户'}</p>
+                <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{user.name || t.common.user}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer">
                 <Settings className="w-4 h-4 mr-2" />
-                用户设置
+                {t.home.userSettings}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setAuthOpen(true)} className="cursor-pointer">
                 <ArrowLeftRight className="w-4 h-4 mr-2" />
-                切换账号
+                {t.home.switchAccount}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-red-500 cursor-pointer">
                 <LogOut className="w-4 h-4 mr-2" />
-                退出登录
+                {t.home.logout}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -135,7 +139,7 @@ export default function HomePage() {
             className="h-9 px-4 rounded-xl bg-white/70 dark:bg-neutral-800/70 backdrop-blur-xl border border-neutral-200/50 dark:border-neutral-700/30 text-neutral-500 dark:text-neutral-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300/50 dark:hover:border-emerald-600/30 transition-all duration-200 flex items-center gap-1.5 text-xs font-medium"
           >
             <User className="w-3.5 h-3.5" />
-            登录
+            {t.common.login}
           </button>
         )}
       </div>
@@ -154,7 +158,7 @@ export default function HomePage() {
               FishAI
             </h1>
             <p className="text-sm text-neutral-400 dark:text-neutral-500">
-              FishLab-ai 自研 AI 助手
+              {t.app.subtitle}
             </p>
           </div>
 
@@ -164,7 +168,7 @@ export default function HomePage() {
               href="/chat"
               className="group inline-flex items-center gap-2 rounded-xl px-6 h-11 text-sm font-medium bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-sm transition-all duration-200 active:scale-[0.98]"
             >
-              开始聊天
+              {t.home.startChat}
               <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
             <Link
@@ -172,7 +176,7 @@ export default function HomePage() {
               className="group inline-flex items-center gap-2 rounded-xl px-5 h-11 text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-700 transition-all duration-200 active:scale-[0.98]"
             >
               <BookOpen className="w-4 h-4" />
-              文档
+              {t.home.viewDocs}
             </Link>
           </div>
         </div>
@@ -180,7 +184,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="h-10 flex items-center justify-center text-[10px] text-neutral-300 dark:text-neutral-700 select-none">
-        FishLab-ai · v0.0.1 Alpha
+        {t.app.footer}
       </footer>
 
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />

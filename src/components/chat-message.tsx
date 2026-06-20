@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ChevronDown, Globe, Brain } from 'lucide-react';
 import { Md } from '@/lib/markdown';
+import { useI18n } from '@/lib/i18n';
 import type { ChatMessage } from '@/lib/store';
 
 interface ChatMessageProps {
@@ -12,7 +13,7 @@ interface ChatMessageProps {
   deepThinking?: boolean;
 }
 
-function SearchResultsBlock({ msg }: { msg: ChatMessage }) {
+function SearchResultsBlock({ msg, t }: { msg: ChatMessage; t: ReturnType<typeof useI18n>['t'] }) {
   const [searchOpen, setSearchOpen] = useState(false);
 
   if (!msg.searchResults) {
@@ -36,7 +37,7 @@ function SearchResultsBlock({ msg }: { msg: ChatMessage }) {
         className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors border border-emerald-200/60 dark:border-emerald-800/40 rounded-lg px-2 py-1 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20"
       >
         <Globe className="w-3 h-3" />
-        <span>搜索结果</span>
+        <span>{t.common.searchResults}</span>
         <ChevronDown
           className={`w-3 h-3 transition-transform duration-200 ${
             searchOpen ? 'rotate-180' : ''
@@ -54,7 +55,7 @@ function SearchResultsBlock({ msg }: { msg: ChatMessage }) {
   );
 }
 
-function ThinkingBlock({ msg }: { msg: ChatMessage }) {
+function ThinkingBlock({ msg, t }: { msg: ChatMessage; t: ReturnType<typeof useI18n>['t'] }) {
   const [thinkingOpen, setThinkingOpen] = useState(false);
 
   if (!msg.thinking) {
@@ -68,7 +69,7 @@ function ThinkingBlock({ msg }: { msg: ChatMessage }) {
         className="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors border border-amber-200/60 dark:border-amber-800/40 rounded-lg px-2 py-1 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
       >
         <Brain className="w-3 h-3" />
-        <span>思考过程</span>
+        <span>{t.common.thinkingProcess}</span>
         <ChevronDown
           className={`w-3 h-3 transition-transform duration-200 ${
             thinkingOpen ? 'rotate-180' : ''
@@ -84,12 +85,12 @@ function ThinkingBlock({ msg }: { msg: ChatMessage }) {
   );
 }
 
-function ThinkingIndicator({ deepThinking }: { deepThinking: boolean }) {
+function ThinkingIndicator({ deepThinking, t }: { deepThinking: boolean; t: ReturnType<typeof useI18n>['t'] }) {
   if (deepThinking) {
     return (
       <div className="flex items-center gap-2 py-1 text-amber-500 dark:text-amber-400">
         <Brain className="w-4 h-4 animate-pulse" />
-        <span className="text-xs">深度思考中...</span>
+        <span className="text-xs">{t.chat.thinkingStatus}</span>
       </div>
     );
   }
@@ -114,6 +115,7 @@ function WaitingDots() {
 
 /* eslint-disable complexity */
 export function ChatMessageItem({ msg, isStreaming, streamingId, deepThinking = false }: ChatMessageProps) {
+  const { t } = useI18n();
   const isCurrentlyStreaming = isStreaming && msg.role === 'assistant' && msg.id === streamingId;
 
   return (
@@ -131,11 +133,11 @@ export function ChatMessageItem({ msg, isStreaming, streamingId, deepThinking = 
       >
         {msg.role === 'assistant' ? (
           <>
-            <SearchResultsBlock msg={msg} />
-            <ThinkingBlock msg={msg} />
+            <SearchResultsBlock msg={msg} t={t} />
+            <ThinkingBlock msg={msg} t={t} />
 
             {isCurrentlyStreaming && !msg.content && !msg.thinking && (
-              <ThinkingIndicator deepThinking={deepThinking} />
+              <ThinkingIndicator deepThinking={deepThinking} t={t} />
             )}
 
             {!isCurrentlyStreaming && !msg.content && !msg.thinking && (

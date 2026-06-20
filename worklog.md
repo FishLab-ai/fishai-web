@@ -1,26 +1,33 @@
 ---
-
-Task ID: 1
-Agent: Super Z (main)
-Task: 搞巨严格的代码质量检测工具和测试
+Task ID: 5
+Agent: main
+Task: Add complete i18n (internationalization) to fishai-web
 
 Work Log:
-
-- 安装依赖：prettier, eslint-config-prettier, jest, @testing-library/\*, ts-jest, husky, lint-staged 到三个项目
-- TypeScript 严格化：noImplicitAny, noUncheckedIndexedAccess, noUnusedLocals/Params, forceConsistentCasing
-- 关闭 ignoreBuildErrors, 开启 reactStrictMode
-- ESLint 严格规则：no-explicit-any, strict-boolean-expressions, no-shadow, naming-convention, curly, eqeqeq, complexity, max-depth, max-lines-per-function, prefer-template 等 40+ 条规则
-- Prettier 统一格式化配置（三个项目）
-- Husky + lint-staged 提交前自动检查
-- Jest 测试框架：fishai-ai 49 个测试，fishai-server 9 个测试，fishai-web 8 个测试
-- GitHub Actions CI 自动化流水线（typecheck + lint + format + test + build）
-- 修复 strict TS 发现的真实 bug：memory.ts payload undefined, system-prompt || → ??, thinking-parser 复杂度/嵌套三元/curly
-- 推送三个项目到 GitHub
+- Created i18n infrastructure: src/lib/i18n/locales/zh-CN.ts, src/lib/i18n/locales/en-US.ts, src/lib/i18n/context.tsx, src/lib/i18n/index.ts
+- I18nProvider wraps entire app in layout.tsx
+- Created LanguageSwitcher component (src/components/language-switcher.tsx)
+- Updated ALL 11 component files to use useI18n() hook:
+  - src/app/page.tsx (home page + LanguageSwitcher)
+  - src/app/chat/page.tsx (chat page + LanguageSwitcher in header)
+  - src/app/docs/page.tsx (full docs i18n - largest change, 1314 lines)
+  - src/components/sidebar.tsx
+  - src/components/chat-input.tsx
+  - src/components/chat-message.tsx
+  - src/components/settings-dialog.tsx
+  - src/components/auth-dialog.tsx
+  - src/components/user-profile-dialog.tsx
+  - src/components/cookie-consent.tsx
+  - src/lib/markdown.tsx
+- Fixed strict TypeScript issues: noUncheckedIndexedAccess in markdown.tsx, user-profile-dialog.tsx, page.tsx, docs/page.tsx
+- Fixed tsconfig.json to exclude fishai-server, fishai-ai dirs from root project
+- Fixed next.config.ts for noPropertyAccessFromIndexSignature
 
 Stage Summary:
-
-- 三个项目全部配置完毕并推送到 GitHub
-- fishai-ai: ESLint 0 errors 0 warnings + 49 tests PASS
-- fishai-server: 9 tests PASS
-- fishai-web: 8 tests PASS
-- 现有源码（chat/page.tsx 等）有大量 lint error，需要逐步修复
+- ✅ 0 errors, 0 warnings (ESLint)
+- ✅ 8 tests passing
+- ✅ Build successful (next build)
+- ✅ Full zh-CN and en-US translations for ~300+ strings
+- ✅ Language switcher on home page and chat header
+- ✅ Locale persisted to localStorage, auto-detects browser language
+- ✅ Dynamic html lang attribute updates

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { useAppStore, type UserInfo } from '@/lib/store';
 import { API_BASE } from '@/lib/api';
 import { Pencil, Check, Loader2, Github, Link2, Unlink } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useI18n, type Translations } from '@/lib/i18n';
 
 interface UserProfileDialogProps {
   open: boolean;
@@ -47,6 +48,7 @@ function NameSection({
   onEditStart,
   onSave,
   onNameChange,
+  t,
 }: {
   user: UserInfo;
   editingName: boolean;
@@ -55,13 +57,14 @@ function NameSection({
   onEditStart: () => void;
   onSave: () => void;
   onNameChange: (v: string) => void;
+  t: Translations;
 }) {
   return (
     <section>
-      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">个人信息</h3>
+      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">{t.profile.personalInfo}</h3>
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-emerald-500/20 shrink-0">
-          {(user.name || user.email)[0].toUpperCase()}
+          {(user.name || user.email)?.[0]?.toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           {editingName ? (
@@ -85,12 +88,12 @@ function NameSection({
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200 truncate">
-                {user.name || '未设置昵称'}
+                {user.name || t.profile.noNickname}
               </span>
               <button
                 onClick={onEditStart}
                 className="h-6 w-6 rounded-md flex items-center justify-center text-neutral-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors shrink-0"
-                title="修改昵称"
+                title={t.profile.changeNickname}
               >
                 <Pencil className="w-3 h-3" />
               </button>
@@ -107,18 +110,20 @@ function GithubSection({
   githubConfigEnabled,
   githubBound,
   githubLoading,
+  t,
 }: {
   githubConfigEnabled: boolean;
   githubBound: boolean;
   githubLoading: boolean;
+  t: Translations;
 }) {
   if (!githubConfigEnabled) {
     return (
       <section>
-        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">第三方登录</h3>
+        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">{t.profile.thirdPartyLogin}</h3>
         <div className="py-4 text-center rounded-xl border border-dashed border-neutral-200 dark:border-neutral-800">
           <p className="text-xs text-neutral-400 dark:text-neutral-600">
-            暂无可用的第三方登录服务
+            {t.profile.noThirdParty}
           </p>
         </div>
       </section>
@@ -127,7 +132,7 @@ function GithubSection({
 
   return (
     <section>
-      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">第三方登录</h3>
+      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">{t.profile.thirdPartyLogin}</h3>
       <div className="space-y-2">
         <div className="flex items-center justify-between p-3 rounded-xl border border-neutral-200/60 dark:border-neutral-800/40 bg-white dark:bg-neutral-800/30">
           <div className="flex items-center gap-2.5">
@@ -139,7 +144,7 @@ function GithubSection({
           {githubBound ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
               <Link2 className="w-2.5 h-2.5" />
-              已绑定
+              {t.profile.bound}
             </span>
           ) : (
             <Button
@@ -152,7 +157,7 @@ function GithubSection({
               className="h-7 text-xs text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
             >
               {githubLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              绑定
+              {t.profile.bind}
             </Button>
           )}
         </div>
@@ -166,19 +171,21 @@ function DangerSection({
   deleteLoading,
   onConfirm,
   onCancel,
+  t,
 }: {
   deleteConfirming: boolean;
   deleteLoading: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  t: Translations;
 }) {
   if (deleteConfirming) {
     return (
       <section>
-        <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 mb-3">危险操作</h3>
+        <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 mb-3">{t.profile.dangerZone}</h3>
         <div className="p-3 rounded-xl border-2 border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/20 space-y-3">
           <p className="text-xs text-red-600 dark:text-red-400">
-            确定要注销账号吗？此操作将永久删除你的所有数据，包括对话记录和记忆，且无法恢复。
+            {t.profile.deleteWarning}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -189,7 +196,7 @@ function DangerSection({
               className="h-8 text-xs"
             >
               {deleteLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-              确认注销
+              {t.profile.deleteConfirm}
             </Button>
             <Button
               variant="ghost"
@@ -197,7 +204,7 @@ function DangerSection({
               onClick={onCancel}
               className="h-8 text-xs text-neutral-500"
             >
-              取消
+              {t.common.cancel}
             </Button>
           </div>
         </div>
@@ -207,14 +214,14 @@ function DangerSection({
 
   return (
     <section>
-      <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 mb-3">危险操作</h3>
+      <h3 className="text-sm font-semibold text-red-500 dark:text-red-400 mb-3">{t.profile.dangerZone}</h3>
       <Button
         variant="ghost"
         onClick={onConfirm}
         className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 h-9 text-xs"
       >
         <Unlink className="w-3.5 h-3.5 mr-2" />
-        注销账号
+        {t.profile.deleteAccount}
       </Button>
     </section>
   );
@@ -223,6 +230,7 @@ function DangerSection({
 /* eslint-disable max-lines-per-function */
 export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps) {
   const { user, setUser } = useAppStore();
+  const { t } = useI18n();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState('');
   const [nameLoading, setNameLoading] = useState(false);
@@ -244,7 +252,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       setNameValue(user.name || '');
       setEditingName(false);
       setDeleteConfirming(false);
-      setGithubBound(!!(user as Record<string, unknown>).githubId);
+      setGithubBound(!!((user as unknown) as Record<string, unknown>).githubId);
       fetchGithubStatus();
     }
     prevOpenRef.current = open;
@@ -254,7 +262,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     if (!user) {return;}
     const newName = nameValue.trim();
     if (!newName) {
-      toast({ title: '昵称不能为空', variant: 'destructive' });
+      toast({ title: t.profile.nicknameRequired, variant: 'destructive' });
       return;
     }
     setNameLoading(true);
@@ -266,15 +274,15 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       });
       if (!res.ok) {
         const data = await res.json();
-        toast({ title: data.error || '修改失败', variant: 'destructive' });
+        toast({ title: data.error || t.profile.updateFailed, variant: 'destructive' });
         return;
       }
       const data = await res.json();
       setUser(data as UserInfo);
       setEditingName(false);
-      toast({ title: '昵称已更新' });
+      toast({ title: t.profile.nicknameUpdated });
     } catch {
-      toast({ title: '网络错误', variant: 'destructive' });
+      toast({ title: t.common.networkError, variant: 'destructive' });
     } finally {
       setNameLoading(false);
     }
@@ -295,15 +303,15 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
       });
       if (!res.ok) {
         const data = await res.json();
-        toast({ title: data.error || '注销失败', variant: 'destructive' });
+        toast({ title: data.error || t.profile.deleteFailed, variant: 'destructive' });
         return;
       }
-      toast({ title: '账号已注销' });
+      toast({ title: t.profile.accountDeleted });
       const { logout } = useAppStore.getState();
       logout();
       onOpenChange(false);
     } catch {
-      toast({ title: '网络错误', variant: 'destructive' });
+      toast({ title: t.common.networkError, variant: 'destructive' });
     } finally {
       setDeleteLoading(false);
     }
@@ -315,8 +323,8 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); setDeleteConfirming(false); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>用户设置</DialogTitle>
-          <DialogDescription>管理你的账号信息和偏好</DialogDescription>
+          <DialogTitle>{t.profile.title}</DialogTitle>
+          <DialogDescription>{t.profile.description}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 mt-2">
@@ -327,14 +335,15 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
             nameLoading={nameLoading}
             onEditStart={() => setEditingName(true)}
             onSave={handleSaveName}
-            onCancel={() => setEditingName(false)}
             onNameChange={setNameValue}
+            t={t}
           />
 
           <GithubSection
             githubConfigEnabled={githubConfigEnabled}
             githubBound={githubBound}
-            githubLoading={githubLoading}
+            githubLoading={_githubLoading}
+            t={t}
           />
 
           <DangerSection
@@ -342,6 +351,7 @@ export function UserProfileDialog({ open, onOpenChange }: UserProfileDialogProps
             deleteLoading={deleteLoading}
             onConfirm={handleDeleteAccount}
             onCancel={() => setDeleteConfirming(false)}
+            t={t}
           />
         </div>
       </DialogContent>

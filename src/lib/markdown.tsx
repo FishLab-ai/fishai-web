@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { Code2, Copy, Check } from 'lucide-react';
+import { useI18n } from '@/lib/i18n';
 
 // ── 代码块 ──
-function CodeBlock({ lang, code, streaming }: { lang: string; code: string; streaming: boolean }) {
+function CodeBlock({ lang, code, streaming, t }: { lang: string; code: string; streaming: boolean; t: ReturnType<typeof useI18n>['t'] }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(code);
@@ -16,13 +17,13 @@ function CodeBlock({ lang, code, streaming }: { lang: string; code: string; stre
     <div className="my-2.5 rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-700/50 bg-[#fafafa] dark:bg-neutral-800/40 group">
       <div className="px-3.5 py-1.5 text-[11px] font-mono text-neutral-400 dark:text-neutral-500 flex items-center justify-between border-b border-neutral-200/60 dark:border-neutral-700/40 bg-neutral-100/60 dark:bg-neutral-800/60">
         <span className="flex items-center gap-1.5">
-          <Code2 className="w-3 h-3" />{lang || 'code'}
+          <Code2 className="w-3 h-3" />{lang || t.markdown.code}
         </span>
         <div className="flex items-center gap-2">
           {streaming && (
             <span className="flex items-center gap-1 text-emerald-500">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              生成中
+              {t.markdown.generating}
             </span>
           )}
           {!streaming && (
@@ -51,7 +52,7 @@ function InlineMd({ text }: { text: string }) {
         const boldParts = seg.split(/(\*\*[^*]+\*\*)/g);
         if (boldParts.length === 1) {
           const halfBold = seg.split(/(\*\*[^*]*)$/);
-          if (halfBold.length > 1 && halfBold[1].startsWith('**') && !halfBold[1].endsWith('**')) {
+          if (halfBold.length > 1 && halfBold[1]?.startsWith('**') && !halfBold[1]?.endsWith('**')) {
             return <span key={i}><span>{halfBold[0]}</span><span className="text-neutral-400">{halfBold[1]}</span></span>;
           }
           return <span key={i}>{seg}</span>;
@@ -100,6 +101,7 @@ function TextBlock({ text }: { text: string }) {
 
   while (i < lines.length) {
     const line = lines[i];
+    if (!line) {break;}
 
     if (line.trim() === '') {
       flushList();
@@ -110,8 +112,8 @@ function TextBlock({ text }: { text: string }) {
     const headingMatch = line.match(/^(#{1,6})\s+(.+)/);
     if (headingMatch) {
       flushList();
-      const level = headingMatch[1].length;
-      const content = headingMatch[2];
+      const level = headingMatch[1]?.length ?? 1;
+      const content = headingMatch[2] ?? '';
       const sizes: Record<number, string> = {
         1: 'text-lg font-bold',
         2: 'text-base font-bold',
@@ -132,8 +134,8 @@ function TextBlock({ text }: { text: string }) {
     if (line.startsWith('> ')) {
       flushList();
       const quoteLines: string[] = [];
-      while (i < lines.length && lines[i].startsWith('> ')) {
-        quoteLines.push(lines[i].slice(2));
+      while (i < lines.length && lines[i]?.startsWith('> ')) {
+        quoteLines.push(lines[i]?.slice(2) ?? '');
         i++;
       }
       elements.push(
@@ -148,7 +150,7 @@ function TextBlock({ text }: { text: string }) {
     if (ulMatch) {
       if (listType !== 'ul') flushList();
       listType = 'ul';
-      listItems.push(ulMatch[1]);
+      listItems.push(ulMatch[1] ?? '');
       i++;
       continue;
     }
@@ -157,7 +159,7 @@ function TextBlock({ text }: { text: string }) {
     if (olMatch) {
       if (listType !== 'ol') flushList();
       listType = 'ol';
-      listItems.push(olMatch[1]);
+      listItems.push(olMatch[1] ?? '');
       i++;
       continue;
     }
@@ -171,8 +173,8 @@ function TextBlock({ text }: { text: string }) {
 
     flushList();
     const paraLines: string[] = [];
-    while (i < lines.length && lines[i].trim() !== '' && !lines[i].match(/^(#{1,6}\s|> |[-*]\s|\d+[.)]\s)/)) {
-      paraLines.push(lines[i]);
+    while (i < lines.length && lines[i]?.trim() !== '' && !lines[i]?.match(/^(#{1,6}\s|> |[-*]\s|\d+[.)]\s)/)) {
+      paraLines.push(lines[i] ?? '');
       i++;
     }
     elements.push(
@@ -188,6 +190,8 @@ function TextBlock({ text }: { text: string }) {
 
 // ── 主 Markdown 渲染器 ──
 export function Md({ text, streaming = false }: { text: string; streaming?: boolean }) {
+  const { t } = useI18n();
+
   const blocks: { type: 'code' | 'text'; content: string; lang: string }[] = useMemo(() => {
     const result: { type: 'code' | 'text'; content: string; lang: string }[] = [];
     let remaining = text;
@@ -205,14 +209,16 @@ export function Md({ text, streaming = false }: { text: string; streaming?: bool
       const codeEnd = afterFirst.indexOf('```');
       if (codeEnd === -1) {
         const lines = afterFirst.split('\n');
-        const lang = /^[a-zA-Z][a-zA-Z0-9+._-]*$/.test(lines[0]) ? lines[0] : '';
+        const firstLine = lines[0] ?? '';
+        const lang = /^[a-zA-Z][a-zA-Z0-9+._-]*$/.test(firstLine) ? firstLine : '';
         const code = lines.slice(lang ? 1 : 0).join('\n');
         result.push({ type: 'code', content: code, lang });
         break;
       } else {
         const inner = afterFirst.slice(0, codeEnd);
         const lines = inner.split('\n');
-        const lang = /^[a-zA-Z][a-zA-Z0-9+._-]*$/.test(lines[0]) ? lines[0] : '';
+        const firstLine = lines[0] ?? '';
+        const lang = /^[a-zA-Z][a-zA-Z0-9+._-]*$/.test(firstLine) ? firstLine : '';
         const code = lines.slice(lang ? 1 : 0).join('\n');
         result.push({ type: 'code', content: code, lang });
         remaining = afterFirst.slice(codeEnd + 3);
@@ -226,7 +232,7 @@ export function Md({ text, streaming = false }: { text: string; streaming?: bool
       {blocks.map((block, i) => {
         if (block.type === 'code') {
           const isLast = i === blocks.length - 1;
-          return <CodeBlock key={i} lang={block.lang} code={block.content} streaming={streaming && isLast} />;
+          return <CodeBlock key={i} lang={block.lang} code={block.content} streaming={streaming && isLast} t={t} />;
         }
         return <TextBlock key={i} text={block.content} />;
       })}
