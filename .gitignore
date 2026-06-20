@@ -54,8 +54,22 @@ server.log
 /skills/tool-results/
 tool-results/
 
-# fishai-engine is a separate repo
+# Separate repos (each has its own GitHub repo)
 fishai-engine/
+fishai-ai/
+fishai-server/
+fishai-weights/
+fishai-train/
+
+# PID files
+*.pid
+
+# Start scripts (local only)
+start.sh
+start-bg.sh
+
+# Database
+db/
 
 # Download directory - never commit
 download/
