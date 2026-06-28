@@ -8,7 +8,7 @@ import { ChatMessageItem } from '@/components/chat-message';
 import { Sidebar } from '@/components/sidebar';
 import { SettingsDialog } from '@/components/settings-dialog';
 import { AuthDialog } from '@/components/auth-dialog';
-import { LanguageSwitcher } from '@/components/language-switcher';
+
 import { ChevronDown, Fish, Code2, Sparkles, Plus, AlignLeft } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useI18n, type Translations } from '@/lib/i18n';
@@ -154,7 +154,6 @@ function ChatHeader({ onOpenSidebar, onNewChat, t }: { onOpenSidebar: () => void
         title={t.chat.chatHistory}>
         <AlignLeft className="w-4 h-4" />
       </button>
-      <LanguageSwitcher />
       <button onClick={onNewChat}
         className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 dark:text-neutral-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-200"
         title={t.chat.newChat}>

@@ -25,9 +25,10 @@ import {
   BookMarked,
   Pin,
   PinOff,
+  Globe,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useI18n, type Translations } from '@/lib/i18n';
+import { useI18n, type Locale, type Translations } from '@/lib/i18n';
 
 interface NoteItem {
   id: string;
@@ -400,7 +401,7 @@ function CreateNoteForm({
 /* eslint-disable max-lines-per-function */
 export function SettingsDialog() {
   const { settingsOpen, setSettingsOpen, themeMode, setThemeMode, memoryMode, setMemoryMode, user } = useAppStore();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
 
   const notesState = useNotesCRUD(user, t);
 
@@ -432,6 +433,39 @@ export function SettingsDialog() {
         </DialogHeader>
 
         <div className="space-y-6 mt-2">
+          {/* ── Language ── */}
+          <section>
+            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">
+              <Globe className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+              {t.settings.language}
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { key: 'zh-CN' as Locale, label: t.settings.zhCN },
+                { key: 'zh-TW' as Locale, label: t.settings.zhTW },
+                { key: 'en-US' as Locale, label: t.settings.enUS },
+              ]).map((opt) => {
+                const isActive = locale === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setLocale(opt.key)}
+                    className={`flex items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${
+                      isActive
+                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-sm'
+                        : 'border-neutral-200 dark:border-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'
+                    }`}
+                  >
+                    <span className={`text-xs font-medium ${isActive ? 'text-emerald-700 dark:text-emerald-300' : 'text-neutral-500 dark:text-neutral-400'}`}>
+                      {opt.label}
+                    </span>
+                    {isActive && <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* ── Theme ── */}
           <section>
             <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200 mb-3">{t.settings.appearance}</h3>
